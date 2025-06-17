@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'pages/medications_page.dart';
+import 'package:medapp/modules/medications_manager/views/medications_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MedicationsPage(),
+      home: MedicationsPage(), // 🔹 const removido aqui
     );
   }
 }
