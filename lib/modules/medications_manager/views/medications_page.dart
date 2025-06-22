@@ -1,6 +1,5 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
-
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -38,17 +37,16 @@ class _MedicationsPageState extends State<MedicationsPage> {
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
 
-    final scheduleTime = DateTime(now.year, now.month, now.day, hour, minute);
-    final tzSchedule = tz.TZDateTime.from(
-      scheduleTime.isAfter(now) ? scheduleTime : now.add(Duration(seconds: 5)),
-      tz.local,
-    );
+    final schedule = DateTime(now.year, now.month, now.day, hour, minute);
+    final scheduledTime = schedule.isAfter(now)
+        ? schedule
+        : now.add(const Duration(seconds: 10));
 
     await _notifications.zonedSchedule(
       med.id.hashCode,
       'Hora do medicamento',
       '${med.name} - ${med.dosage}',
-      tzSchedule,
+      tz.TZDateTime.from(scheduledTime, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'med_channel',
@@ -78,52 +76,40 @@ class _MedicationsPageState extends State<MedicationsPage> {
 
   void _addOrEditMedication([Medication? existing]) async {
     final nameController = TextEditingController(text: existing?.name ?? '');
-    final dosageController =
-        TextEditingController(text: existing?.dosage ?? '');
-    TimeOfDay selectedTime =
-        existing != null ? _parseTime(existing.time) : TimeOfDay.now();
+    final dosageController = TextEditingController(text: existing?.dosage ?? '');
+    TimeOfDay selectedTime = existing != null ? _parseTime(existing.time) : TimeOfDay.now();
 
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title:
-            Text(existing == null ? 'Novo medicamento' : 'Editar medicamento'),
+        title: Text(existing == null ? 'Novo medicamento' : 'Editar medicamento'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: 'Nome')),
-            TextField(
-                controller: dosageController,
-                decoration: InputDecoration(labelText: 'Dosagem')),
+            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nome')),
+            TextField(controller: dosageController, decoration: const InputDecoration(labelText: 'Dosagem')),
             TextButton(
-              child:
-                  Text('Selecionar horário: ${selectedTime.format(context)}'),
+              child: Text('Selecionar horário: ${selectedTime.format(context)}'),
               onPressed: () async {
-                final picked = await showTimePicker(
-                    context: context, initialTime: selectedTime);
+                final picked = await showTimePicker(context: context, initialTime: selectedTime);
                 if (picked != null) selectedTime = picked;
               },
             ),
           ],
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () {
               final med = Medication(
                 id: existing?.id ?? const Uuid().v4(),
                 name: nameController.text,
                 dosage: dosageController.text,
-                time:
-                    '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
+                time: '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
               );
               setState(() {
                 if (existing != null) {
-                  final index =
-                      _medications.indexWhere((m) => m.id == existing.id);
+                  final index = _medications.indexWhere((m) => m.id == existing.id);
                   _medications[index] = med;
                 } else {
                   _medications.add(med);
@@ -133,7 +119,7 @@ class _MedicationsPageState extends State<MedicationsPage> {
               _showNotification(med);
               Navigator.pop(context);
             },
-            child: Text('Salvar'),
+            child: const Text('Salvar'),
           ),
         ],
       ),
@@ -148,7 +134,7 @@ class _MedicationsPageState extends State<MedicationsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Meus Medicamentos')),
+      appBar: AppBar(title: const Text('Meus Medicamentos')),
       body: ListView.builder(
         itemCount: _medications.length,
         itemBuilder: (_, index) {
@@ -159,8 +145,8 @@ class _MedicationsPageState extends State<MedicationsPage> {
             background: Container(
               color: Colors.red,
               alignment: Alignment.centerRight,
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Icon(Icons.delete, color: Colors.white),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: const Icon(Icons.delete, color: Colors.white),
             ),
             onDismissed: (_) {
               setState(() => _medications.removeAt(index));
@@ -169,6 +155,16 @@ class _MedicationsPageState extends State<MedicationsPage> {
             child: ListTile(
               title: Text('${med.name} - ${med.dosage}'),
               subtitle: Text('Horário: ${med.time}'),
+              trailing: IconButton(
+                icon: Icon(
+                  med.taken ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: med.taken ? Colors.green : null,
+                ),
+                onPressed: () {
+                  setState(() => med.taken = !med.taken);
+                  _saveMedications();
+                },
+              ),
               onTap: () => _addOrEditMedication(med),
             ),
           );
@@ -176,7 +172,7 @@ class _MedicationsPageState extends State<MedicationsPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addOrEditMedication(),
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }

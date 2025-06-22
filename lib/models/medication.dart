@@ -25,13 +25,11 @@ class Medication {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'dosage': dosage,
-      'time': time,
-      'taken': taken,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'dosage': dosage,
+        'time': time,
+        'taken': taken,
+      };
 }
