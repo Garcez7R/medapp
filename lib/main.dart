@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:medapp/modules/medications_manager/views/medications_page.dart';
+import 'modules/medications_manager/views/medications_page.dart';
+import 'modules/medications_manager/views/add_medication_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +16,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MedicationsPage(), // 🔹 const removido aqui
+      initialRoute: '/medications',
+      routes: {
+        '/medications': (context) => MedicationsPage(), // 🔹 Sem `const` aqui
+        '/addMedication': (context) => const AddMedicationPage(),
+      },
     );
   }
 }
