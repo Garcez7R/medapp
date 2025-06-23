@@ -1,0 +1,367 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import '../models/medication.dart';
+
+class MedicationsPage extends StatefulWidget {
+  @override
+  _MedicationsPageState createState() => _MedicationsPageState();
+}
+
+class _MedicationsPageState extends State<MedicationsPage> {
+  late Box<Medication> medicationsBox;
+  List<Medication> medications = [];
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  @override
+  void initState() {
+    super.initState();
+    _initHive();
+    _initNotifications();
+  }
+
+  Future<void> _initHive() async {
+    await Hive.initFlutter();
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(MedicationAdapter());
+    }
+    medicationsBox = await Hive.openBox<Medication>('medications');
+    setState(() {
+      medications = medicationsBox.values.toList();
+    });
+    _scheduleAllNotifications();
+  }
+
+  Future<void> _initNotifications() async {
+    tz.initializeTimeZones();
+
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    final InitializationSettings initSettings = InitializationSettings(
+      android: androidSettings,
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(initSettings);
+  }
+
+  Future<void> _scheduleNotification(
+      int id, String title, String body, DateTime scheduledDate) async {
+    final details = const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'medication_channel',
+        'Medicações',
+        importance: Importance.max,
+        priority: Priority.high,
+      ),
+    );
+
+    final scheduledTZ = tz.TZDateTime.from(scheduledDate, tz.local);
+
+    if (scheduledTZ.isBefore(tz.TZDateTime.now(tz.local))) {
+      return; // não agenda notificações no passado
+    }
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledTZ,
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      androidAllowWhileIdle: true,
+    );
+  }
+
+  void _scheduleAllNotifications() {
+    for (var med in medications) {
+      _scheduleMedicationNotifications(med);
+    }
+  }
+
+  void _scheduleMedicationNotifications(Medication med) {
+    // Cancelar notificações existentes para o medicamento
+    flutterLocalNotificationsPlugin.cancel(med.id);
+
+    // Lista de horários: automático + manual
+    List<String> scheduleTimes = [];
+
+    if (med.firstDoseTime != null &&
+        med.frequencyHours != null &&
+        med.durationDays != null) {
+      scheduleTimes.addAll(_generateRecurringSchedules(
+          med.firstDoseTime!, med.frequencyHours!, med.durationDays!));
+    }
+
+    scheduleTimes.addAll(med.manualSchedules);
+
+    int uniqueNotifId = med.id * 1000; // base para gerar IDs únicos para notificações múltiplas
+
+    for (var timeStr in scheduleTimes) {
+      final parts = timeStr.split(':');
+      final now = DateTime.now();
+      DateTime scheduledDate = DateTime(
+          now.year, now.month, now.day, int.parse(parts[0]), int.parse(parts[1]));
+
+      if (scheduledDate.isBefore(now)) {
+        scheduledDate = scheduledDate.add(Duration(days: 1));
+      }
+
+      _scheduleNotification(
+          uniqueNotifId,
+          'Hora de tomar ${med.name}',
+          'Dosagem: ${med.dosage}',
+          scheduledDate);
+
+      uniqueNotifId++;
+    }
+  }
+
+  List<String> _generateRecurringSchedules(
+      String firstTime, int frequencyHours, int durationDays) {
+    List<String> schedules = [];
+    final parts = firstTime.split(':');
+    DateTime doseTime = DateTime(
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day,
+        int.parse(parts[0]),
+        int.parse(parts[1]));
+
+    final totalDoses = ((24 / frequencyHours) * durationDays).round();
+
+    for (int i = 0; i < totalDoses; i++) {
+      schedules.add('${doseTime.hour.toString().padLeft(2, '0')}:${doseTime.minute.toString().padLeft(2, '0')}');
+      doseTime = doseTime.add(Duration(hours: frequencyHours));
+    }
+    return schedules;
+  }
+
+  void _addOrEditMedication({Medication? medication}) {
+    final nameCtrl = TextEditingController(text: medication?.name ?? '');
+    final dosageCtrl = TextEditingController(text: medication?.dosage ?? '');
+    final freqCtrl = TextEditingController(
+        text: medication?.frequencyHours?.toString() ?? '');
+    final durCtrl = TextEditingController(
+        text: medication?.durationDays?.toString() ?? '');
+    final manualSchedules = medication?.manualSchedules ?? [];
+    TimeOfDay selectedTime = medication != null && medication.firstDoseTime != null
+        ? _parseTime(medication.firstDoseTime!)
+        : TimeOfDay.now();
+
+    List<String> newManualSchedules = List.from(manualSchedules);
+
+    void _addManualSchedule(TimeOfDay t) {
+      final newTimeStr =
+          '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+      if (!newManualSchedules.contains(newTimeStr)) {
+        setState(() {
+          newManualSchedules.add(newTimeStr);
+        });
+      }
+    }
+
+    void _removeManualSchedule(String timeStr) {
+      setState(() {
+        newManualSchedules.remove(timeStr);
+      });
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(builder: (context, setStateDialog) {
+        return AlertDialog(
+          title: Text(medication == null ? 'Novo Medicamento' : 'Editar Medicamento'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(labelText: 'Nome'),
+                ),
+                TextField(
+                  controller: dosageCtrl,
+                  decoration: InputDecoration(labelText: 'Dosagem'),
+                ),
+                TextField(
+                  controller: freqCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      InputDecoration(labelText: 'Frequência (horas) - opcional'),
+                ),
+                TextField(
+                  controller: durCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: 'Duração (dias) - opcional'),
+                ),
+                SizedBox(height: 10),
+                Row(
+                  children: [
+                    Text('Primeira dose: ${selectedTime.format(context)}'),
+                    Spacer(),
+                    TextButton(
+                        onPressed: () async {
+                          final t = await showTimePicker(
+                              context: context, initialTime: selectedTime);
+                          if (t != null) {
+                            setStateDialog(() => selectedTime = t);
+                          }
+                        },
+                        child: Text('Selecionar horário')),
+                  ],
+                ),
+                Divider(),
+                Text('Agendamentos manuais:'),
+                ...newManualSchedules.map((timeStr) => ListTile(
+                      title: Text(timeStr),
+                      trailing: IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () => setStateDialog(() {
+                                newManualSchedules.remove(timeStr);
+                              })),
+                    )),
+                TextButton.icon(
+                  icon: Icon(Icons.add),
+                  label: Text('Adicionar agendamento manual'),
+                  onPressed: () async {
+                    final t = await showTimePicker(
+                        context: context, initialTime: TimeOfDay.now());
+                    if (t != null) {
+                      setStateDialog(() {
+                        final timeStr =
+                            '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+                        if (!newManualSchedules.contains(timeStr)) {
+                          newManualSchedules.add(timeStr);
+                        }
+                      });
+                    }
+                  },
+                )
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context), child: Text('Cancelar')),
+            ElevatedButton(
+                onPressed: () async {
+                  final newMed = Medication(
+                    id: medication?.id ?? DateTime.now().millisecondsSinceEpoch,
+                    name: nameCtrl.text,
+                    dosage: dosageCtrl.text,
+                    frequencyHours: int.tryParse(freqCtrl.text),
+                    durationDays: int.tryParse(durCtrl.text),
+                    taken: medication?.taken ?? false,
+                    firstDoseTime:
+                        '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
+                    manualSchedules: newManualSchedules,
+                  );
+
+                  if (medication != null) {
+                    await medication.delete();
+                  }
+
+                  await medicationsBox.put(newMed.id, newMed);
+
+                  setState(() {
+                    medications = medicationsBox.values.toList();
+                  });
+
+                  _scheduleMedicationNotifications(newMed);
+
+                  Navigator.pop(context);
+                },
+                child: Text('Salvar'))
+          ],
+        );
+      }),
+    );
+  }
+
+  void _toggleTaken(Medication med) async {
+    med.taken = !med.taken;
+    await med.save();
+    setState(() {
+      // atualizar tela
+    });
+  }
+
+  void _confirmDeleteMedication(Medication med) {
+    showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: Text('Excluir Medicamento'),
+              content: Text('Deseja remover "${med.name}"?'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context), child: Text('Cancelar')),
+                ElevatedButton(
+                    onPressed: () async {
+                      await med.delete();
+                      setState(() {
+                        medications = medicationsBox.values.toList();
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: Text('Remover')),
+              ],
+            ));
+  }
+
+  TimeOfDay _parseTime(String time) {
+    final parts = time.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Medicamentos/Dosagem')),
+      body: medications.isEmpty
+          ? Center(child: Text('Nenhum medicamento cadastrado'))
+          : ListView.builder(
+              itemCount: medications.length,
+              itemBuilder: (context, i) {
+                final med = medications[i];
+                return Dismissible(
+                  key: Key(med.id.toString()),
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerLeft,
+                    padding: EdgeInsets.only(left: 20),
+                    child: Icon(Icons.delete, color: Colors.white),
+                  ),
+                  direction: DismissDirection.startToEnd,
+                  confirmDismiss: (_) async {
+                    _confirmDeleteMedication(med);
+                    return false; // esperar confirmação antes de deletar
+                  },
+                  child: ListTile(
+                    title: Text('${med.name} - ${med.dosage}'),
+                    subtitle: Text(
+                        'Freq: ${med.frequencyHours ?? "-"}h, Duração: ${med.durationDays ?? "-"} dias\nPrimeira dose: ${med.firstDoseTime ?? "-"}\nManuais: ${med.manualSchedules.join(", ")}'),
+                    trailing: IconButton(
+                      icon: Icon(
+                        med.taken ? Icons.check_circle : Icons.radio_button_unchecked,
+                        color: med.taken ? Colors.green : null,
+                      ),
+                      onPressed: () => _toggleTaken(med),
+                    ),
+                    onTap: () => _addOrEditMedication(medication: med),
+                  ),
+                );
+              }),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addOrEditMedication(),
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+}

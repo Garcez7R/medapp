@@ -57,7 +57,7 @@ class _MedicationsPageState extends State<MedicationsPage> {
         final id = medication.id + day * 100 + hourOffset;
 
         if (Platform.isAndroid || Platform.isLinux) {
-          // Removido uiLocalNotificationDateInterpretation
+          // uiLocalNotificationDateInterpretation removido para compatibilidade
           await flutterLocalNotificationsPlugin.zonedSchedule(
             id,
             'Hora de tomar ${medication.name}',
@@ -71,11 +71,10 @@ class _MedicationsPageState extends State<MedicationsPage> {
                 priority: Priority.high,
               ),
             ),
-            androidAllowWhileIdle: true,
             matchDateTimeComponents: DateTimeComponents.time,
           );
         } else {
-          // Para outras plataformas, pode usar show simples ou adaptar conforme necessário
+          // Para outras plataformas, usar show simples ou adaptar conforme necessário
           await flutterLocalNotificationsPlugin.show(
             id,
             'Hora de tomar ${medication.name}',

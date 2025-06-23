@@ -1,35 +1,41 @@
-import 'dart:convert';
+import 'package:hive/hive.dart';
 
-class Medication {
-  final String id;
-  final String name;
-  final String dosage;
-  final String time;
+part 'medication.g.dart';
+
+@HiveType(typeId: 0)
+class Medication extends HiveObject {
+  @HiveField(0)
+  int id;
+
+  @HiveField(1)
+  String name;
+
+  @HiveField(2)
+  String dosage;
+
+  @HiveField(3)
+  int? frequencyHours;
+
+  @HiveField(4)
+  int? durationDays;
+
+  @HiveField(5)
   bool taken;
+
+  @HiveField(6)
+  String? firstDoseTime; // "HH:mm"
+
+  @HiveField(7)
+  List<String> manualSchedules; // lista de horários "HH:mm"
 
   Medication({
     required this.id,
     required this.name,
     required this.dosage,
-    required this.time,
+    this.frequencyHours,
+    this.durationDays,
     this.taken = false,
-  });
-
-  factory Medication.fromJson(Map<String, dynamic> json) {
-    return Medication(
-      id: json['id'],
-      name: json['name'],
-      dosage: json['dosage'],
-      time: json['time'],
-      taken: json['taken'] ?? false,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'dosage': dosage,
-        'time': time,
-        'taken': taken,
-      };
+    this.firstDoseTime,
+    List<String>? manualSchedules,
+  }) : manualSchedules = manualSchedules ?? [];
 }

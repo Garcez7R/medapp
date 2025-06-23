@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'modules/medications_manager/views/medications_page.dart';
+import 'pages/medications_page.dart';
 import 'modules/medications_manager/views/add_medication_page.dart';
 
 void main() {
