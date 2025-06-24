@@ -1,7 +1,8 @@
-import 'dart:io' show Platform;
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import '../models/medication.dart';
 
@@ -11,158 +12,135 @@ class MedicationsPage extends StatefulWidget {
 }
 
 class _MedicationsPageState extends State<MedicationsPage> {
-  List<Medication> medications = [];
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  List<Medication> _medications = [];
+  final _notifications = FlutterLocalNotificationsPlugin();
+  final taken = <String>{};
 
   @override
   void initState() {
     super.initState();
-    _initializeNotifications();
+    _initNotifications();
+    _loadMedications();
   }
 
-  Future<void> _initializeNotifications() async {
-    tz.initializeTimeZones();
-
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    final InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: initializationSettingsAndroid,
-      // iOS/macOS settings se precisar, pode adicionar aqui
-    );
-
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  Future<void> _initNotifications() async {
+    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const linux = LinuxInitializationSettings(defaultActionName: 'Abrir');
+    const settings = InitializationSettings(android: android, linux: linux);
+    await _notifications.initialize(settings);
   }
 
-  Future<void> _scheduleNotifications(Medication medication) async {
-    final now = tz.TZDateTime.now(tz.local);
-    final intervalHours = medication.frequencyHours ?? 24;
-    final totalDays = medication.durationDays ?? 365 * 10;
+  Future<void> _loadMedications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('medications');
+    if (data != null) {
+      final List list = jsonDecode(data);
+      setState(() {
+        _medications = list.map((e) => Medication.fromJson(e)).toList();
+      });
+    }
+  }
 
-    for (int day = 0; day < totalDays; day++) {
-      final dayDate = now.add(Duration(days: day));
-      for (int hourOffset = 0; hourOffset < 24; hourOffset += intervalHours) {
-        final scheduledDate = tz.TZDateTime(
-          tz.local,
-          dayDate.year,
-          dayDate.month,
-          dayDate.day,
-          hourOffset,
-        );
+  Future<void> _saveMedications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = jsonEncode(_medications.map((e) => e.toJson()).toList());
+    await prefs.setString('medications', data);
+  }
 
-        if (scheduledDate.isBefore(now)) continue;
+  Future<void> _scheduleAllNotifications(Medication med) async {
+    if (med.time == null) return;
 
-        final id = medication.id + day * 100 + hourOffset;
+    final now = DateTime.now();
+    final firstDose = DateTime(now.year, now.month, now.day, med.time!.hour, med.time!.minute);
+    final intervalHours = (24 / med.frequency).floor();
+    final totalDoses = med.duration * med.frequency;
 
-        if (Platform.isAndroid || Platform.isLinux) {
-          // uiLocalNotificationDateInterpretation removido para compatibilidade
-          await flutterLocalNotificationsPlugin.zonedSchedule(
-            id,
-            'Hora de tomar ${medication.name}',
-            'Dosagem: ${medication.dosage}',
-            scheduledDate,
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                'medication_channel',
-                'Medicações',
-                importance: Importance.max,
-                priority: Priority.high,
-              ),
-            ),
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            matchDateTimeComponents: DateTimeComponents.time,
-          );
-        } else {
-          // Para outras plataformas, usar show simples ou adaptar conforme necessário
-          await flutterLocalNotificationsPlugin.show(
-            id,
-            'Hora de tomar ${medication.name}',
-            'Dosagem: ${medication.dosage}',
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                'medication_channel',
-                'Medicações',
-                importance: Importance.max,
-                priority: Priority.high,
-              ),
-            ),
-          );
-        }
+    for (int i = 0; i < totalDoses; i++) {
+      final scheduledTime = firstDose.add(Duration(hours: intervalHours * i));
+      final tzTime = tz.TZDateTime.from(scheduledTime, tz.local);
+
+      final notificationId = med.id.hashCode + i;
+
+      final androidDetails = AndroidNotificationDetails(
+        'med_channel',
+        'Medicamentos',
+        channelDescription: 'Lembretes de medicação',
+        importance: Importance.max,
+      );
+
+      final linuxDetails = LinuxNotificationDetails();
+
+      final platformDetails = NotificationDetails(
+        android: androidDetails,
+        linux: linuxDetails,
+      );
+
+      if (Platform.isAndroid) {
+      } else {
       }
     }
   }
 
-  void _addOrEditMedication({Medication? medication}) {
-    final nameController = TextEditingController(text: medication?.name ?? '');
-    final dosageController =
-        TextEditingController(text: medication?.dosage ?? '');
-    final frequencyController = TextEditingController(
-        text: medication?.frequencyHours?.toString() ?? '');
-    final durationController =
-        TextEditingController(text: medication?.durationDays?.toString() ?? '');
+  void _addOrEditMedication([Medication? med]) async {
+    final controllerName = TextEditingController(text: med?.name);
+    final controllerDosage = TextEditingController(text: med?.dosage);
+    final controllerFreq = TextEditingController(text: med?.frequency.toString());
+    final controllerDuration = TextEditingController(text: med?.duration.toString());
+    TimeOfDay? selectedTime = med?.time;
 
-    showDialog(
+    await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-            medication == null ? 'Novo Medicamento' : 'Editar Medicamento'),
+      builder: (_) => AlertDialog(
+        title: Text(med == null ? 'Novo medicamento' : 'Editar medicamento'),
         content: SingleChildScrollView(
           child: Column(
             children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: 'Nome do Medicamento'),
-              ),
-              TextField(
-                controller: dosageController,
-                decoration: InputDecoration(labelText: 'Dosagem'),
-              ),
-              TextField(
-                controller: frequencyController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Frequência (em horas)'),
-              ),
-              TextField(
-                controller: durationController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Duração (em dias)'),
+              TextField(controller: controllerName, decoration: InputDecoration(labelText: 'Nome')),
+              TextField(controller: controllerDosage, decoration: InputDecoration(labelText: 'Dosagem')),
+              TextField(controller: controllerFreq, decoration: InputDecoration(labelText: 'Doses por dia')),
+              TextField(controller: controllerDuration, decoration: InputDecoration(labelText: 'Duração (dias)')),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Text(selectedTime == null
+                      ? 'Horário: Não definido'
+                      : 'Horário: ${selectedTime?.format(context)}'),
+                  Spacer(),
+                  TextButton(
+                    onPressed: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: selectedTime ?? TimeOfDay.now(),
+                      );
+                      if (picked != null) {
+                        setState(() => selectedTime = picked);
+                      }
+                    },
+                    child: Text('Selecionar horário'),
+                  ),
+                ],
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar')),
           ElevatedButton(
             onPressed: () {
-              final name = nameController.text;
-              final dosage = dosageController.text;
-              final frequency = int.tryParse(frequencyController.text);
-              final duration = int.tryParse(durationController.text);
-
-              final newMedication = Medication(
-                id: medication?.id ?? DateTime.now().millisecondsSinceEpoch,
-                name: name,
-                dosage: dosage,
-                frequencyHours: frequency,
-                durationDays: duration,
+              final newMed = Medication(
+                id: med?.id ?? DateTime.now().toIso8601String(),
+                name: controllerName.text,
+                dosage: controllerDosage.text,
+                frequency: int.tryParse(controllerFreq.text) ?? 1,
+                duration: int.tryParse(controllerDuration.text) ?? 1,
+                time: selectedTime,
               );
-
               setState(() {
-                if (medication != null) {
-                  medications = medications
-                      .map((m) => m.id == medication.id ? newMedication : m)
-                      .toList();
-                } else {
-                  medications.add(newMedication);
-                }
+                if (med != null) _medications.removeWhere((m) => m.id == med.id);
+                _medications.add(newMed);
               });
-
-              _scheduleNotifications(newMedication);
+              _saveMedications();
+              _scheduleAllNotifications(newMed);
               Navigator.pop(context);
             },
             child: Text('Salvar'),
@@ -172,74 +150,61 @@ class _MedicationsPageState extends State<MedicationsPage> {
     );
   }
 
-  void _confirmDeleteMedication(Medication medication) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Remover medicamento'),
-        content: Text('Tem certeza que deseja remover "${medication.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                medications.removeWhere((m) => m.id == medication.id);
-              });
-              Navigator.pop(context);
-            },
-            child: Text('Remover'),
-          ),
-        ],
-      ),
-    );
+  void _deleteMedication(String id) async {
+    setState(() => _medications.removeWhere((m) => m.id == id));
+    _saveMedications();
+  }
+
+  void _toggleTaken(String id) {
+    setState(() {
+      if (taken.contains(id)) {
+        taken.remove(id);
+      } else {
+        taken.add(id);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Medicamentos/Dosagem'),
-      ),
-      body: ListView.builder(
-        itemCount: medications.length,
-        itemBuilder: (context, index) {
-          final medication = medications[index];
+      appBar: AppBar(title: Text('Medicamentos')),
+      body: ListView(
+        children: _medications.map((med) {
+          final isTaken = taken.contains(med.id);
           return Dismissible(
-            key: Key(medication.id.toString()),
+            key: Key(med.id),
+            direction: DismissDirection.endToStart,
             background: Container(
               color: Colors.red,
-              alignment: Alignment.centerLeft,
-              padding: EdgeInsets.only(left: 20),
+              alignment: Alignment.centerRight,
+              padding: EdgeInsets.symmetric(horizontal: 20),
               child: Icon(Icons.delete, color: Colors.white),
             ),
-            direction: DismissDirection.startToEnd,
-            onDismissed: (direction) {
-              _confirmDeleteMedication(medication);
-            },
+            onDismissed: (_) => _deleteMedication(med.id),
             child: ListTile(
-              title: Text('${medication.name} / ${medication.dosage}'),
+              title: Text(med.name),
               subtitle: Text(
-                  'Frequência: ${medication.frequencyHours ?? 'N/A'} horas\nDuração: ${medication.durationDays ?? 'N/A'} dias'),
-              trailing: IconButton(
-                icon: Icon(
-                  medication.taken
-                      ? Icons.check_circle
-                      : Icons.radio_button_unchecked,
-                  color: medication.taken ? Colors.green : null,
-                ),
-                onPressed: () {
-                  setState(() {
-                    medication.taken = !medication.taken;
-                  });
-                },
+                  'Dose: ${med.dosage} • Horário: ${med.time?.format(context) ?? "não definido"}'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: () => _addOrEditMedication(med),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isTaken ? Icons.check_circle : Icons.radio_button_unchecked,
+                      color: isTaken ? Colors.green : null,
+                    ),
+                    onPressed: () => _toggleTaken(med.id),
+                  ),
+                ],
               ),
-              onTap: () => _addOrEditMedication(medication: medication),
             ),
           );
-        },
+        }).toList(),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addOrEditMedication(),

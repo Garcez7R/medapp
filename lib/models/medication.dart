@@ -1,41 +1,54 @@
-import 'package:hive/hive.dart';
+import 'package:flutter/material.dart';
 
-part 'medication.g.dart';
-
-@HiveType(typeId: 0)
-class Medication extends HiveObject {
-  @HiveField(0)
-  int id;
-
-  @HiveField(1)
+class Medication {
+  String id;
   String name;
-
-  @HiveField(2)
   String dosage;
-
-  @HiveField(3)
-  int? frequencyHours;
-
-  @HiveField(4)
-  int? durationDays;
-
-  @HiveField(5)
+  int frequency;
+  int duration;
   bool taken;
-
-  @HiveField(6)
-  String? firstDoseTime; // "HH:mm"
-
-  @HiveField(7)
-  List<String> manualSchedules; // lista de horários "HH:mm"
+  TimeOfDay? time;
 
   Medication({
     required this.id,
     required this.name,
     required this.dosage,
-    this.frequencyHours,
-    this.durationDays,
+    required this.frequency,
+    required this.duration,
     this.taken = false,
-    this.firstDoseTime,
-    List<String>? manualSchedules,
-  }) : manualSchedules = manualSchedules ?? [];
+    this.time,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'dosage': dosage,
+      'frequency': frequency,
+      'duration': duration,
+      'taken': taken,
+      'time': time != null ? '${time!.hour}:${time!.minute}' : null,
+    };
+  }
+
+  factory Medication.fromJson(Map<String, dynamic> json) {
+    final timeParts = (json['time'] as String?)?.split(':');
+    TimeOfDay? parsedTime;
+    if (timeParts != null && timeParts.length == 2) {
+      parsedTime = TimeOfDay(
+        hour: int.parse(timeParts[0]),
+        minute: int.parse(timeParts[1]),
+      );
+    }
+
+    return Medication(
+      id: json['id'],
+      name: json['name'],
+      dosage: json['dosage'],
+      frequency: json['frequency'],
+      duration: json['duration'],
+      taken: json['taken'] ?? false,
+      time: parsedTime,
+    );
+  }
 }
