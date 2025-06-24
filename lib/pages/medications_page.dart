@@ -1,138 +1,217 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tzdata;
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
+import 'dart:math';
+import 'dart:io';
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 class Medication {
-  final int id;
   String name;
   String dosage;
-  int frequency; // vezes ao dia
-  int duration; // dias
+  String frequency;
+  int duration;
+  TimeOfDay time;
+  bool indefinite;
+  bool taken;
 
   Medication({
-    required this.id,
     required this.name,
     required this.dosage,
     required this.frequency,
     required this.duration,
+    required this.time,
+    this.indefinite = false,
+    this.taken = false,
   });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'dosage': dosage,
-      'frequency': frequency,
-      'duration': duration,
-    };
-  }
-
-  // Adicione a partir de Map para persistência
-  factory Medication.fromMap(Map<String, dynamic> map) {
-    return Medication(
-      id: map['id'],
-      name: map['name'],
-      dosage: map['dosage'],
-      frequency: map['frequency'],
-      duration: map['duration'],
-    );
-  }
 }
 
 class MedicationsPage extends StatefulWidget {
+  const MedicationsPage({super.key});
   @override
-  _MedicationsPageState createState() => _MedicationsPageState();
+  State<MedicationsPage> createState() => _MedicationsPageState();
 }
 
 class _MedicationsPageState extends State<MedicationsPage> {
-  final FlutterLocalNotificationsPlugin _notifications =
-      FlutterLocalNotificationsPlugin();
-
-  List<Medication> _medications = [];
+  List<Medication> medications = [];
 
   @override
   void initState() {
     super.initState();
-    tzdata.initializeTimeZones();
     _initializeNotifications();
-    _loadMedications();
   }
 
   Future<void> _initializeNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    final initSettings = InitializationSettings(
-      android: androidSettings,
-      // iOS/macOS removed since não usamos no momento
+    final android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    final initSettings = InitializationSettings(android: android);
+    await flutterLocalNotificationsPlugin.initialize(initSettings);
+    // Não chama requestPermission(), evita erro
+    tz.initializeTimeZones();
+  }
+
+  Future<void> _scheduleNotification(Medication med) async {
+    final scheduledDate = tz.TZDateTime.from(
+      DateTime.now().add(const Duration(minutes: 1)),
+      tz.local,
     );
 
-    await _notifications.initialize(initSettings);
-  }
+    final androidDetails = AndroidNotificationDetails(
+      'med_channel_id',
+      'Medicamentos',
+      channelDescription: 'Lembretes de medicação',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      sound: RawResourceAndroidNotificationSound('alerta'),
+    );
 
-  Future<void> _loadMedications() async {
-    // Aqui você carrega a lista da persistência, ex: SharedPreferences, DB, etc
-    // Por enquanto, lista vazia para teste
-    setState(() {
-      _medications = [];
-    });
-  }
+    final notificationDetails = NotificationDetails(android: androidDetails);
 
-  Future<void> _scheduleNotification(
-      Medication med, DateTime scheduledDate, int notificationId) async {
-    await _notifications.zonedSchedule(
-      notificationId,
-      'Hora do medicamento',
-      '${med.name} - ${med.dosage}',
-      tz.TZDateTime.from(scheduledDate, tz.local),
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          'medications_channel',
-          'Medicações',
-          channelDescription: 'Lembretes para tomar medicamentos',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
-      ),
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      Random().nextInt(100000),
+      'Hora de tomar: ${med.name}',
+      'Dosagem: ${med.dosage}',
+      scheduledDate,
+      notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      androidAllowWhileIdle: true,
-      uiLocalNotificationDateInterpretation: null, // Removido para evitar erro
-      // Parâmetro inválido removido
+      matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
-  // Resto do código para exibir lista, editar, excluir, marcar como tomado etc
+  void _addOrEditMedication({Medication? med}) {
+    final nameController = TextEditingController(text: med?.name);
+    final dosageController = TextEditingController(text: med?.dosage);
+    final frequencyController = TextEditingController(text: med?.frequency);
+    final durationController = TextEditingController(text: med?.duration.toString());
+    TimeOfDay selectedTime = med?.time ?? TimeOfDay.now();
+    bool indefinite = med?.indefinite ?? false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            title: Text(med == null ? 'Adicionar Medicamento' : 'Editar Medicamento'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nome')),
+                  TextField(controller: dosageController, decoration: const InputDecoration(labelText: 'Dosagem')),
+                  TextField(controller: frequencyController, decoration: const InputDecoration(labelText: 'Frequência')),
+                  Row(
+                    children: [
+                      const Text('Horário:'),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        child: Text(selectedTime.format(context)),
+                        onPressed: () async {
+                          final time = await showTimePicker(context: context, initialTime: selectedTime);
+                          if (time != null) {
+                            setModalState(() => selectedTime = time);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const Text('Duração:'),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: durationController,
+                          keyboardType: TextInputType.number,
+                          enabled: !indefinite,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Checkbox(
+                        value: indefinite,
+                        onChanged: (value) => setModalState(() => indefinite = value ?? false),
+                      ),
+                      const Expanded(child: Text('Sem data final (tratamento contínuo)')),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              if (med != null)
+                TextButton(
+                  onPressed: () {
+                    setState(() => medications.remove(med));
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Excluir'),
+                ),
+              TextButton(
+                onPressed: () {
+                  final newMed = Medication(
+                    name: nameController.text,
+                    dosage: dosageController.text,
+                    frequency: frequencyController.text,
+                    duration: int.tryParse(durationController.text) ?? 0,
+                    time: selectedTime,
+                    indefinite: indefinite,
+                  );
+                  setState(() {
+                    if (med != null) {
+                      final index = medications.indexOf(med);
+                      medications[index] = newMed;
+                    } else {
+                      medications.add(newMed);
+                    }
+                  });
+                  _scheduleNotification(newMed);
+                  Navigator.pop(context);
+                },
+                child: const Text('Salvar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Medicações'),
+        centerTitle: true,
+        title: const Text('Meus Medicamentos'),
       ),
-      body: _medications.isEmpty
-          ? Center(child: Text('Aqui vai a lista de medicamentos'))
-          : ListView.builder(
-              itemCount: _medications.length,
-              itemBuilder: (context, index) {
-                final med = _medications[index];
-                return ListTile(
-                  title: Text('${med.name}'),
-                  subtitle: Text('${med.dosage} - ${med.frequency} vezes/dia'),
-                  trailing: IconButton(
-                    icon: Icon(Icons.edit),
-                    onPressed: () {
-                      // Abre tela de edição
-                    },
-                  ),
-                );
-              },
+      body: ListView.builder(
+        itemCount: medications.length,
+        itemBuilder: (context, index) {
+          final med = medications[index];
+          return ListTile(
+            title: Text(med.name),
+            subtitle: Text('${med.dosage} | ${med.frequency}'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () => _addOrEditMedication(med: med),
+                ),
+                IconButton(
+                  icon: Icon(med.taken ? Icons.check_circle : Icons.radio_button_unchecked),
+                  onPressed: () {
+                    setState(() => med.taken = !med.taken);
+                  },
+                ),
+              ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Abrir formulário para adicionar medicação
+          );
         },
-        child: Icon(Icons.add),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addOrEditMedication(),
+        child: const Icon(Icons.add),
       ),
     );
   }

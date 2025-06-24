@@ -14,8 +14,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   tz.initializeTimeZones();
-  // Usamos tz.local diretamente, não precisa pegar string timezone
-  tz.setLocalLocation(tz.local);
+  final String timeZoneName = await tz.getLocalTimezone();
+  tz.setLocalLocation(tz.getLocation(timeZoneName));
 
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');

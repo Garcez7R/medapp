@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-
-import 'pages/medications_page.dart';
+import 'lib/pages/medications_page.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -14,8 +13,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   tz.initializeTimeZones();
-  // Usamos tz.local diretamente, não precisa pegar string timezone
-  tz.setLocalLocation(tz.local);
+  final String timeZoneName = await tz.Timezone.getLocalTimezone();
+  tz.setLocalLocation(tz.getLocation(timeZoneName));
 
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -24,10 +23,12 @@ Future<void> main() async {
     android: initializationSettingsAndroid,
   );
 
+  // Configura callback para saber quando notificação é acionada
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
     onDidReceiveNotificationResponse: (NotificationResponse response) {
-      print('Notificação recebida: \${response.payload}');
+      // Você pode processar clique na notificação aqui, se quiser
+      print('Notificação recebida: ${response.payload}');
     },
   );
 
