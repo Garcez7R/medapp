@@ -1,0 +1,100 @@
+// ignore_for_file: unused_import
+
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'dart:io' show Platform;
+
+class MedicationsPage extends StatefulWidget {
+  @override
+  _MedicationsPageState createState() => _MedicationsPageState();
+}
+
+class _MedicationsPageState extends State<MedicationsPage> {
+  final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeNotifications();
+  }
+
+  Future<void> _initializeNotifications() async {
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    final InitializationSettings settings = InitializationSettings(
+      android: androidSettings,
+      // iOS e macOS removidos para evitar erros
+    );
+
+    await _notifications.initialize(settings);
+  }
+
+  Future<void> _scheduleNotification({
+    required int id,
+    required String title,
+    required String body,
+    required tz.TZDateTime scheduledDate,
+  }) async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'med_channel_id',
+      'Medications',
+      channelDescription: 'Channel for medication reminders',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+    );
+
+    const NotificationDetails platformDetails = NotificationDetails(
+      android: androidDetails,
+    );
+
+    await _notifications.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduledDate,
+      platformDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+      // uiLocalNotificationDateInterpretation removido para evitar erro
+    );
+  }
+
+  Future<void> scheduleDailyNotification(TimeOfDay time) async {
+    final now = tz.TZDateTime.now(tz.local);
+    tz.TZDateTime scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    await _scheduleNotification(
+      id: 0,
+      title: 'Hora do remédio',
+      body: 'Está na hora de tomar seu medicamento.',
+      scheduledDate: scheduledDate,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Medicações'),
+      ),
+      body: Center(
+        child: Text('Aqui vai a lista de medicamentos'),
+      ),
+    );
+  }
+}
