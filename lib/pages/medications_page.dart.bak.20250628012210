@@ -138,24 +138,26 @@ class _MedicationsPageState extends State<MedicationsPage> {
       if (scheduledTime.isBefore(now)) continue;
 
       try {
-await flutterLocalNotificationsPlugin.zonedSchedule(
-  med.name.hashCode + i,
-  'Hora do medicamento',
-  '${med.name} - ${med.dosage}',
-  scheduledTime,
-  NotificationDetails(
-    android: AndroidNotificationDetails(
-      'med_channel_persistent',
-      'MedApp Notificações Persistentes',
-      channelDescription: 'Notificações persistentes de medicação',
-      icon: 'ic_capsule',
-      importance: Importance.max,
-      priority: Priority.high,
-    ),
-  ),
-  androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-  matchDateTimeComponents: DateTimeComponents.time,
-);
+        await flutterLocalNotificationsPlugin.zonedSchedule(
+          med.name.hashCode + i,
+          'Hora do medicamento',
+          '${med.name} - ${med.dosage}',
+          scheduledTime,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              'med_channel_persistent',
+              'MedApp Notificações Persistentes',
+              channelDescription: 'Notificações persistentes de medicação',
+              icon: 'ic_capsule',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.time,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.wallClockTime,
+        );
       } catch (e) {
         debugPrint('Erro ao agendar notificação: \$e');
       }
