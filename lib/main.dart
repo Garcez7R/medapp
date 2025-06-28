@@ -1,49 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
-
 import 'pages/medications_page.dart';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+void main() {
+  runApp(const MedApp());
+}
 
-const String channelId = 'medication_channel';
+class MedApp extends StatelessWidget {
+  const MedApp({super.key});
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  tz.initializeTimeZones();
-  // Usamos tz.local diretamente, não precisa pegar string timezone
-  tz.setLocalLocation(tz.local);
-
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  final InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-  );
-
-  await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse response) {
-      print('Notificação recebida: \${response.payload}');
-    },
-  );
-
-  final AndroidNotificationChannel channel = AndroidNotificationChannel(
-    channelId,
-    'Medicações',
-    description: 'Notificações de medicamentos',
-    importance: Importance.max,
-    playSound: true,
-    enableVibration: true,
-  );
-
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(channel);
-
-  runApp(const MaterialApp(home: MedicationsPage()));
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'MedApp',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorSchemeSeed: Colors.teal,
+        brightness: Brightness.light,
+        useMaterial3: true,
+      ),
+      home: const MedicationsPage(),
+    );
+  }
 }

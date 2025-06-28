@@ -18,7 +18,9 @@ class _MedicationsPageState extends State<MedicationsPage> {
   @override
   void initState() {
     super.initState();
-    _initializeNotifications();
+    _initializeNotifications().then((_) {
+      _requestPermissions();
+    });
   }
 
   Future<void> _initializeNotifications() async {
@@ -30,10 +32,18 @@ class _MedicationsPageState extends State<MedicationsPage> {
     final InitializationSettings initializationSettings =
         InitializationSettings(
       android: initializationSettingsAndroid,
-      // iOS/macOS settings se precisar, pode adicionar aqui
     );
 
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  Future<void> _requestPermissions() async {
+    if (Platform.isAndroid) {
+      final androidImplementation =
+          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidImplementation?.requestPermission();
+    }
   }
 
   Future<void> _scheduleNotifications(Medication medication) async {
@@ -57,7 +67,6 @@ class _MedicationsPageState extends State<MedicationsPage> {
         final id = medication.id + day * 100 + hourOffset;
 
         if (Platform.isAndroid || Platform.isLinux) {
-          // Removido uiLocalNotificationDateInterpretation
           await flutterLocalNotificationsPlugin.zonedSchedule(
             id,
             'Hora de tomar ${medication.name}',
@@ -75,7 +84,6 @@ class _MedicationsPageState extends State<MedicationsPage> {
             matchDateTimeComponents: DateTimeComponents.time,
           );
         } else {
-          // Para outras plataformas, pode usar show simples ou adaptar conforme necessário
           await flutterLocalNotificationsPlugin.show(
             id,
             'Hora de tomar ${medication.name}',
@@ -94,7 +102,7 @@ class _MedicationsPageState extends State<MedicationsPage> {
     }
   }
 
-  void _addOrEditMedication({Medication? medication}) {
+  Future<bool?> _addOrEditMedication({Medication? medication}) async {
     final nameController = TextEditingController(text: medication?.name ?? '');
     final dosageController =
         TextEditingController(text: medication?.dosage ?? '');
@@ -103,46 +111,34 @@ class _MedicationsPageState extends State<MedicationsPage> {
     final durationController =
         TextEditingController(text: medication?.durationDays?.toString() ?? '');
 
-    showDialog(
+    bool _isSaving = false;
+
+    return await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-            medication == null ? 'Novo Medicamento' : 'Editar Medicamento'),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: 'Nome do Medicamento'),
-              ),
-              TextField(
-                controller: dosageController,
-                decoration: InputDecoration(labelText: 'Dosagem'),
-              ),
-              TextField(
-                controller: frequencyController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Frequência (em horas)'),
-              ),
-              TextField(
-                controller: durationController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Duração (em dias)'),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final name = nameController.text;
-              final dosage = dosageController.text;
-              final frequency = int.tryParse(frequencyController.text);
-              final duration = int.tryParse(durationController.text);
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            Future<void> _save() async {
+              if (_isSaving) return;
+
+              final name = nameController.text.trim();
+              final dosage = dosageController.text.trim();
+              final frequency = int.tryParse(frequencyController.text.trim());
+              final duration = int.tryParse(durationController.text.trim());
+
+              if (name.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content:
+                          Text('Por favor, insira o nome do medicamento.')),
+                );
+                return;
+              }
+
+              setStateDialog(() {
+                _isSaving = true;
+              });
 
               final newMedication = Medication(
                 id: medication?.id ?? DateTime.now().millisecondsSinceEpoch,
@@ -152,23 +148,86 @@ class _MedicationsPageState extends State<MedicationsPage> {
                 durationDays: duration,
               );
 
-              setState(() {
-                if (medication != null) {
-                  medications = medications
-                      .map((m) => m.id == medication.id ? newMedication : m)
-                      .toList();
-                } else {
-                  medications.add(newMedication);
-                }
-              });
+              try {
+                setState(() {
+                  if (medication != null) {
+                    medications = medications
+                        .map((m) => m.id == medication.id ? newMedication : m)
+                        .toList();
+                  } else {
+                    medications.add(newMedication);
+                  }
+                });
 
-              _scheduleNotifications(newMedication);
-              Navigator.pop(context);
-            },
-            child: Text('Salvar'),
-          ),
-        ],
-      ),
+                await _scheduleNotifications(newMedication);
+
+                Navigator.pop(context, true);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erro ao salvar: $e')),
+                );
+              } finally {
+                if (mounted) {
+                  setStateDialog(() {
+                    _isSaving = false;
+                  });
+                }
+              }
+            }
+
+            return AlertDialog(
+              title: Text(medication == null
+                  ? 'Novo Medicamento'
+                  : 'Editar Medicamento'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration:
+                          InputDecoration(labelText: 'Nome do Medicamento'),
+                    ),
+                    TextField(
+                      controller: dosageController,
+                      decoration: InputDecoration(labelText: 'Dosagem'),
+                    ),
+                    TextField(
+                      controller: frequencyController,
+                      keyboardType: TextInputType.number,
+                      decoration:
+                          InputDecoration(labelText: 'Frequência (em horas)'),
+                    ),
+                    TextField(
+                      controller: durationController,
+                      keyboardType: TextInputType.number,
+                      decoration:
+                          InputDecoration(labelText: 'Duração (em dias)'),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed:
+                      _isSaving ? null : () => Navigator.pop(context, false),
+                  child: Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: _isSaving ? null : _save,
+                  child: _isSaving
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text('Salvar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -216,8 +275,33 @@ class _MedicationsPageState extends State<MedicationsPage> {
               child: Icon(Icons.delete, color: Colors.white),
             ),
             direction: DismissDirection.startToEnd,
-            onDismissed: (direction) {
-              _confirmDeleteMedication(medication);
+            confirmDismiss: (direction) async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Remover medicamento'),
+                  content: Text(
+                      'Tem certeza que deseja remover "${medication.name}"?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text('Cancelar'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text('Remover'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                setState(() {
+                  medications.removeAt(index);
+                });
+                return true;
+              } else {
+                return false;
+              }
             },
             child: ListTile(
               title: Text('${medication.name} / ${medication.dosage}'),
@@ -236,13 +320,20 @@ class _MedicationsPageState extends State<MedicationsPage> {
                   });
                 },
               ),
-              onTap: () => _addOrEditMedication(medication: medication),
+              onTap: () async {
+                final result =
+                    await _addOrEditMedication(medication: medication);
+                if (result == true) setState(() {});
+              },
             ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _addOrEditMedication(),
+        onPressed: () async {
+          final result = await _addOrEditMedication();
+          if (result == true) setState(() {});
+        },
         child: Icon(Icons.add),
       ),
     );
