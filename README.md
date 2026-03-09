@@ -55,8 +55,46 @@ npm run preview
 
 - `src/` código da aplicação
 - `public/` manifest, service worker e ícones PWA
+- `functions/` APIs de backend para Cloudflare Pages Functions
+- `d1/` schema SQL para banco D1
 - `index.html` entrada web
 
 ## Observações
 - O app é offline-first no que depende de dados locais.
 - Notificações no navegador dependem de permissão do usuário e suporte da plataforma.
+
+## Sincronização com D1 (Cloudflare)
+
+### 1) Criar banco D1
+No terminal (com `wrangler` autenticado):
+
+```bash
+npx wrangler d1 create medapp-db
+```
+
+Guarde o `database_id` retornado.
+
+### 2) Vincular D1 no projeto Pages
+No painel Cloudflare Pages:
+
+1. Abra o projeto do `medapp`.
+2. Vá em `Settings` → `Functions` → `D1 bindings`.
+3. Adicione binding:
+   - `Variable name`: `MEDAPP_DB`
+   - `D1 database`: `medapp-db` (ou o nome que você criou).
+4. Salve para `Production` (e `Preview`, se quiser testar antes).
+
+### 3) Aplicar schema
+
+```bash
+npx wrangler d1 execute medapp-db --file=d1/schema.sql
+```
+
+### 4) Exigir conta Google para sync
+- A UI de sync no app já exige usuário autenticado com `provider = google`.
+- Configure `VITE_GOOGLE_CLIENT_ID` no Cloudflare Pages para ativar login Google.
+
+### 5) Fluxo no app
+- `Perfil e Preferências` → `Sincronização em nuvem (D1)`:
+  - `Enviar dados para nuvem`
+  - `Baixar dados da nuvem`

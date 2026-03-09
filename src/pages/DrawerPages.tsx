@@ -354,6 +354,8 @@ function ProfilePage() {
   const [googleError, setGoogleError] = useState('');
   const [googleBusy, setGoogleBusy] = useState(false);
   const [googleRenderNonce, setGoogleRenderNonce] = useState(0);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
 
   useEffect(() => {
     if (window.google) {
@@ -471,6 +473,78 @@ function ProfilePage() {
     setGoogleBusy(true);
     setGoogleError('');
     window.google.accounts.id.prompt();
+  }
+
+  async function pushToCloudSync() {
+    if (!auth?.email || auth.provider !== 'google') {
+      setSyncStatus('Para sincronizar, faça login com conta Google.');
+      return;
+    }
+
+    try {
+      setSyncBusy(true);
+      setSyncStatus('Enviando dados para a nuvem...');
+      const payload = exportAllMedappData();
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: auth.email,
+          provider: 'google',
+          payload
+        })
+      });
+      const result = (await response.json()) as { ok?: boolean; error?: string; updatedAt?: string };
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || 'Falha ao sincronizar dados.');
+      }
+      setSyncStatus(`Sincronização enviada com sucesso (${new Date(result.updatedAt || '').toLocaleString('pt-BR')}).`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao sincronizar dados.';
+      setSyncStatus(message);
+    } finally {
+      setSyncBusy(false);
+    }
+  }
+
+  async function pullFromCloudSync() {
+    if (!auth?.email || auth.provider !== 'google') {
+      setSyncStatus('Para sincronizar, faça login com conta Google.');
+      return;
+    }
+
+    try {
+      setSyncBusy(true);
+      setSyncStatus('Buscando dados sincronizados...');
+      const params = new URLSearchParams({
+        email: auth.email,
+        provider: 'google'
+      });
+      const response = await fetch(`/api/sync?${params.toString()}`);
+      const result = (await response.json()) as {
+        ok?: boolean;
+        found?: boolean;
+        error?: string;
+        payload?: Record<string, string>;
+      };
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || 'Falha ao buscar dados sincronizados.');
+      }
+      if (!result.found || !result.payload) {
+        setSyncStatus('Nenhum backup em nuvem encontrado para esta conta.');
+        return;
+      }
+      importAllMedappData(result.payload);
+      setSyncStatus('Dados baixados da nuvem. Recarregando app...');
+      window.location.reload();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao baixar dados sincronizados.';
+      setSyncStatus(message);
+    } finally {
+      setSyncBusy(false);
+    }
   }
 
   return (
@@ -609,6 +683,32 @@ function ProfilePage() {
           />
           Alto contraste
         </label>
+      </div>
+
+      <div className="card form-grid" style={{ marginTop: 12 }}>
+        <h3 className="card-title">Sincronização em nuvem (D1)</h3>
+        {auth?.provider === 'google' ? (
+          <p className="card-sub">Conta ativa para sincronização: {auth.email}</p>
+        ) : (
+          <p className="card-sub">Faça login com Google para ativar sincronização entre dispositivos.</p>
+        )}
+        <div className="row">
+          <button
+            className="btn-primary"
+            onClick={() => void pushToCloudSync()}
+            disabled={syncBusy || auth?.provider !== 'google'}
+          >
+            Enviar dados para nuvem
+          </button>
+          <button
+            className="btn-soft"
+            onClick={() => void pullFromCloudSync()}
+            disabled={syncBusy || auth?.provider !== 'google'}
+          >
+            Baixar dados da nuvem
+          </button>
+        </div>
+        {syncStatus && <p className="card-sub">{syncStatus}</p>}
       </div>
     </div>
   );

@@ -1,0 +1,7 @@
+name = "medapp"
+compatibility_date = "2026-03-09"
+
+[[d1_databases]]
+binding = "MEDAPP_DB"
+database_name = "medapp-db"
+database_id = "SUBSTITUA_PELO_DATABASE_ID_DO_D1"
