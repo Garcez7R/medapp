@@ -1,4 +1,4 @@
-export type MainTab = 'medications' | 'exams' | 'health' | 'about';
+export type MainTab = 'medications' | 'agenda' | 'about';
 
 export type DrawerPageKey =
   | 'agenda_medica'

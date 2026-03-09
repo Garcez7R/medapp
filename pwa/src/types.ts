@@ -1,11 +1,22 @@
-export type AppTab = 'medications' | 'exams' | 'health' | 'about';
-
 export interface Medication {
   id: string;
   name: string;
   dosage: string;
   frequency: number;
   duration: number;
-  startTime: string;
-  taken: boolean;
+  time: string;
+  dosesTakenStrings: string[];
+}
+
+export interface MedicalAgendaItem {
+  id: string;
+  compromisso: string;
+  medico: string;
+  contato: string;
+  especialidade: string;
+  data: string;
+  hora: string;
+  local: string;
+  observacoes: string;
+  lembrete: string;
 }

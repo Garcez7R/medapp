@@ -7,8 +7,7 @@ interface BottomNavProps {
 
 const items: Array<{ tab: MainTab; label: string; icon: string }> = [
   { tab: 'medications', label: 'Medicamentos', icon: '💊' },
-  { tab: 'exams', label: 'Exames', icon: '📋' },
-  { tab: 'health', label: 'Saúde', icon: '❤️' },
+  { tab: 'agenda', label: 'Agenda', icon: '🗂️' },
   { tab: 'about', label: 'Sobre', icon: 'ℹ️' }
 ];
 

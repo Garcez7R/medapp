@@ -31,13 +31,13 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: rgba(248, 250, 252, 0.86);
+  background: rgba(248, 250, 252, 0.9);
   backdrop-filter: blur(6px);
 }
 
 .app-header {
   padding: 12px 14px;
-  background: linear-gradient(135deg, #115e59, #0f766e);
+  background: linear-gradient(135deg, #0d9488, #0f766e);
   color: #f8fafc;
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -99,7 +99,8 @@ body {
   flex-wrap: wrap;
 }
 
-button {
+button,
+select {
   border: 0;
   border-radius: 10px;
   padding: 10px 12px;
@@ -122,11 +123,6 @@ button {
   color: var(--danger);
 }
 
-.btn-taken {
-  background: var(--primary-soft);
-  color: #134e4a;
-}
-
 .fab {
   position: fixed;
   right: 16px;
@@ -146,7 +142,7 @@ button {
   right: 0;
   background: #0f172a;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid #334155;
 }
 
@@ -210,10 +206,13 @@ button {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  z-index: 60;
 }
 
 .modal {
-  width: min(520px, 100%);
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow: auto;
   background: var(--surface);
   border-radius: 16px;
   border: 1px solid var(--border);
@@ -232,18 +231,53 @@ label {
 
 input[type='text'],
 input[type='number'],
-input[type='time'] {
+input[type='time'],
+input[type='date'],
+select {
   width: 100%;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: #fff;
+  margin-top: 4px;
 }
 
-.checkbox-row {
+.tabs-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tab-btn {
+  background: #e2e8f0;
+}
+
+.tab-btn.active {
+  background: #0f766e;
+  color: #fff;
+}
+
+.doses-list {
+  display: grid;
+  gap: 8px;
+}
+
+.dose-row {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+}
+
+.dose-row.taken {
+  background: #dcfce7;
+}
+
+.dose-row.pending {
+  background: #fee2e2;
 }
 
 .empty {

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Medication } from '../types';
-import { createMedicationId, formatTime } from '../utils';
+import { createId, formatTime } from '../utils';
 
 interface MedicationFormModalProps {
   initialMedication?: Medication;
@@ -17,34 +17,40 @@ export function MedicationFormModal({
 }: MedicationFormModalProps) {
   const [name, setName] = useState(initialMedication?.name ?? '');
   const [dosage, setDosage] = useState(initialMedication?.dosage ?? '');
-  const [frequency, setFrequency] = useState(String(initialMedication?.frequency ?? ''));
-  const [duration, setDuration] = useState(String(initialMedication?.duration ?? '1'));
-  const [startTime, setStartTime] = useState(
-    initialMedication?.startTime ?? formatTime(new Date())
-  );
-  const [indefinite, setIndefinite] = useState((initialMedication?.duration ?? 1) === 0);
+  const [frequency, setFrequency] = useState(String(initialMedication?.frequency ?? 8));
+  const [duration, setDuration] = useState(String(initialMedication?.duration ?? 7));
+  const [time, setTime] = useState(initialMedication?.time ?? formatTime(new Date()));
+
   const title = useMemo(
     () => (initialMedication ? 'Editar medicamento' : 'Novo medicamento'),
     [initialMedication]
   );
 
   function submit() {
-    const freq = Number(frequency);
-    const dur = indefinite ? 0 : Number(duration);
+    const frequencyHours = Number(frequency);
+    const durationDays = Number(duration);
 
-    if (!name.trim() || !dosage.trim() || !Number.isFinite(freq) || freq <= 0 || dur < 0) {
+    if (
+      !name.trim() ||
+      !dosage.trim() ||
+      !Number.isFinite(frequencyHours) ||
+      frequencyHours <= 0 ||
+      !Number.isFinite(durationDays) ||
+      durationDays <= 0 ||
+      !time
+    ) {
       window.alert('Preencha todos os campos corretamente');
       return;
     }
 
     onSave({
-      id: initialMedication?.id ?? createMedicationId(),
+      id: initialMedication?.id ?? createId(),
       name: name.trim(),
       dosage: dosage.trim(),
-      frequency: freq,
-      duration: dur,
-      startTime,
-      taken: initialMedication?.taken ?? false
+      frequency: frequencyHours,
+      duration: durationDays,
+      time,
+      dosesTakenStrings: initialMedication?.dosesTakenStrings ?? []
     });
   }
 
@@ -52,6 +58,7 @@ export function MedicationFormModal({
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <section className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <h2 className="page-title">{title}</h2>
+
         <div className="form-grid">
           <label>
             Nome
@@ -74,36 +81,20 @@ export function MedicationFormModal({
             />
           </label>
 
-          {!indefinite && (
-            <label>
-              Duração (dias)
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-              />
-            </label>
-          )}
-
-          <label className="checkbox-row">
+          <label>
+            Duração (dias)
             <input
-              type="checkbox"
-              checked={indefinite}
-              onChange={(e) => {
-                const isOn = e.target.checked;
-                setIndefinite(isOn);
-                if (isOn) setDuration('0');
-                if (!isOn && duration === '0') setDuration('1');
-              }}
+              type="number"
+              min={1}
+              step={1}
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
             />
-            Tratamento por tempo indefinido
           </label>
 
           <label>
-            Horário inicial
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            Início
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </label>
         </div>
 

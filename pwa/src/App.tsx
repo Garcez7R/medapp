@@ -3,8 +3,8 @@ import { BottomNav } from './components/BottomNav';
 import { SideMenu } from './components/SideMenu';
 import { type ActivePage, type MainTab } from './nav';
 import { AboutPage } from './pages/AboutPage';
-import { ExamsPage } from './pages/ExamsPage';
-import { HealthPage } from './pages/HealthPage';
+import { AgendaPage } from './pages/AgendaPage';
+import { AgendaUnificadaPage } from './pages/AgendaUnificadaPage';
 import { MedicationsPage } from './pages/MedicationsPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 
@@ -29,9 +29,9 @@ export default function App() {
 
   const page = useMemo(() => {
     if (activePage === 'medications') return <MedicationsPage />;
-    if (activePage === 'exams') return <ExamsPage />;
-    if (activePage === 'health') return <HealthPage />;
+    if (activePage === 'agenda') return <AgendaUnificadaPage />;
     if (activePage === 'about') return <AboutPage />;
+    if (activePage === 'agenda_medica') return <AgendaPage />;
     return <PlaceholderPage title={drawerTitles[activePage]} />;
   }, [activePage]);
 

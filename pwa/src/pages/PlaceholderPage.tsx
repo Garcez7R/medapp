@@ -3,5 +3,5 @@ interface PlaceholderPageProps {
 }
 
 export function PlaceholderPage({ title }: PlaceholderPageProps) {
-  return <p className="empty">{title} - Em desenvolvimento</p>;
+  return <p className="empty">TODO: Implementar a página {title}</p>;
 }
