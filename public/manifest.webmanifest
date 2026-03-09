@@ -11,25 +11,25 @@
   "lang": "pt-BR",
   "icons": [
     {
-      "src": "/medapp-icon-192.png",
+      "src": "/medapp-launcher-192-v2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/medapp-icon-512.png",
+      "src": "/medapp-launcher-512-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/medapp-icon-maskable-192.png",
+      "src": "/medapp-launcher-maskable-192-v2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/medapp-icon-maskable-512.png",
+      "src": "/medapp-launcher-maskable-512-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

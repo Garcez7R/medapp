@@ -1,11 +1,11 @@
-const CACHE = 'medapp-pwa-v3';
+const CACHE = 'medapp-pwa-v4';
 const ASSETS = [
   '/',
-  '/manifest.webmanifest',
-  '/medapp-icon-192.png',
-  '/medapp-icon-512.png',
-  '/medapp-icon-maskable-192.png',
-  '/medapp-icon-maskable-512.png'
+  '/manifest.webmanifest?v=2',
+  '/medapp-launcher-192-v2.png',
+  '/medapp-launcher-512-v2.png',
+  '/medapp-launcher-maskable-192-v2.png',
+  '/medapp-launcher-maskable-512-v2.png'
 ];
 
 self.addEventListener('install', (event) => {
