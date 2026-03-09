@@ -110,9 +110,15 @@ export function loadAuth(): AuthState | null {
 export function saveAuth(auth: AuthState | null): void {
   if (!auth) {
     localStorage.removeItem(AUTH_KEY);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('medapp-auth-changed'));
+    }
     return;
   }
   localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('medapp-auth-changed'));
+  }
 }
 
 export function trackEvent(type: string, message: string): void {

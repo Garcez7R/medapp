@@ -7,7 +7,21 @@ import { AboutPage } from './pages/AboutPage';
 import { AgendaPage } from './pages/AgendaPage';
 import { AgendaUnificadaPage } from './pages/AgendaUnificadaPage';
 import { MedicationsPage } from './pages/MedicationsPage';
-import { loadSettings, saveSettings, trackEvent } from './utils';
+import { loadAuth, loadSettings, saveAuth, saveSettings, trackEvent } from './utils';
+
+type GoogleCredentialPayload = {
+  email?: string;
+  name?: string;
+  picture?: string;
+};
+
+type AuthState = {
+  email: string;
+  signedInAt: string;
+  provider?: 'local' | 'google';
+  name?: string;
+  picture?: string;
+};
 
 type AppPrivacyConfig = {
   lockEnabled: boolean;
@@ -58,6 +72,38 @@ function base64UrlToBytes(value: string): Uint8Array {
   return bytes;
 }
 
+function parseJwtPayload(token: string): GoogleCredentialPayload | null {
+  try {
+    const payloadBase64 = token.split('.')[1];
+    if (!payloadBase64) return null;
+    const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = decodeURIComponent(
+      atob(normalized)
+        .split('')
+        .map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`)
+        .join('')
+    );
+    return JSON.parse(decoded) as GoogleCredentialPayload;
+  } catch {
+    return null;
+  }
+}
+
+function resolveDisplayName(auth: AuthState | null): string {
+  if (auth?.name?.trim()) return auth.name.trim();
+  const profileRaw = localStorage.getItem('medapp.profile');
+  if (profileRaw) {
+    try {
+      const parsed = JSON.parse(profileRaw) as { nome?: string };
+      if (parsed?.nome?.trim()) return parsed.nome.trim();
+    } catch {
+      // ignore parse issue
+    }
+  }
+  if (auth?.email?.trim()) return auth.email.split('@')[0];
+  return 'Convidado';
+}
+
 export default function App() {
   const [tab, setTab] = useState<MainTab>('medications');
   const [activePage, setActivePage] = useState<ActivePage>('medications');
@@ -66,6 +112,13 @@ export default function App() {
   const [displayPrefsOpen, setDisplayPrefsOpen] = useState(false);
   const [onboardingName, setOnboardingName] = useState('');
   const [onboardingLegalAccepted, setOnboardingLegalAccepted] = useState(false);
+  const [onboardingAuthMethod, setOnboardingAuthMethod] = useState<'none' | 'google' | 'local'>('none');
+  const [onboardingLocalEmail, setOnboardingLocalEmail] = useState('');
+  const [onboardingLocalPassword, setOnboardingLocalPassword] = useState('');
+  const [onboardingAuthStatus, setOnboardingAuthStatus] = useState('');
+  const [googleReady, setGoogleReady] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [auth, setAuth] = useState<AuthState | null>(() => loadAuth());
   const [unlockPin, setUnlockPin] = useState('');
   const [unlockError, setUnlockError] = useState('');
   const [locked, setLocked] = useState(false);
@@ -79,6 +132,29 @@ export default function App() {
   useEffect(() => {
     trackEvent('page_view', `Página ativa: ${activePage}`);
   }, [activePage]);
+
+  useEffect(() => {
+    const onAuthChanged = () => {
+      setAuth(loadAuth());
+    };
+    window.addEventListener('medapp-auth-changed', onAuthChanged);
+    return () => {
+      window.removeEventListener('medapp-auth-changed', onAuthChanged);
+    };
+  }, []);
+
+  useEffect(() => {
+    if ((window as any).google) {
+      setGoogleReady(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setGoogleReady(true);
+    document.head.appendChild(script);
+  }, []);
 
   useEffect(() => {
     const evaluateLock = () => {
@@ -193,6 +269,75 @@ export default function App() {
     trackEvent('onboarding_completed', 'Onboarding inicial concluído');
   }
 
+  function handleOnboardingLocalSignIn() {
+    const email = onboardingLocalEmail.trim().toLowerCase();
+    const password = onboardingLocalPassword.trim();
+    if (!email || !password) {
+      setOnboardingAuthStatus('Informe e-mail e senha para continuar com conta local.');
+      return;
+    }
+    const next = {
+      email,
+      signedInAt: new Date().toISOString(),
+      provider: 'local' as const
+    };
+    saveAuth(next);
+    setAuth(next);
+    setOnboardingAuthMethod('local');
+    setOnboardingAuthStatus('Conta local ativa. Algumas funções de sincronização ficarão indisponíveis.');
+  }
+
+  function handleOnboardingGoogleSignIn() {
+    const clientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim();
+    if (!clientId) {
+      setOnboardingAuthStatus('Defina VITE_GOOGLE_CLIENT_ID para habilitar login Google.');
+      return;
+    }
+    const googleApi = (window as any).google?.accounts?.id;
+    if (!googleApi) {
+      setOnboardingAuthStatus('SDK Google ainda não carregou. Tente novamente em instantes.');
+      return;
+    }
+
+    setGoogleBusy(true);
+    setOnboardingAuthStatus('');
+    googleApi.initialize({
+      client_id: clientId,
+      callback: (response: { credential?: string }) => {
+        if (!response?.credential) {
+          setGoogleBusy(false);
+          setOnboardingAuthStatus('Não foi possível concluir login Google.');
+          return;
+        }
+        const payload = parseJwtPayload(response.credential);
+        if (!payload?.email) {
+          setGoogleBusy(false);
+          setOnboardingAuthStatus('Resposta do Google inválida.');
+          return;
+        }
+        const next = {
+          email: payload.email,
+          signedInAt: new Date().toISOString(),
+          provider: 'google' as const,
+          name: payload.name,
+          picture: payload.picture
+        };
+        saveAuth(next);
+        setAuth(next);
+        if (!onboardingName.trim() && payload.name) {
+          setOnboardingName(payload.name);
+        }
+        setOnboardingAuthMethod('google');
+        setOnboardingAuthStatus('Conta Google conectada com sucesso.');
+        setGoogleBusy(false);
+      }
+    });
+    googleApi.prompt();
+  }
+
+  const canFinishOnboarding = onboardingLegalAccepted && onboardingAuthMethod !== 'none';
+  const displayName = resolveDisplayName(auth);
+
   function unlockApp() {
     const savedPin = localStorage.getItem('medapp.lock.pin') ?? '';
     const privacy = readPrivacyConfig();
@@ -268,7 +413,7 @@ export default function App() {
         <button className="menu-btn" onClick={() => setMenuOpen(true)} aria-label="Abrir menu lateral">
           ☰
         </button>
-        <span>MedApp</span>
+        <span className="app-brand">MedApp</span>
         <nav className="desktop-tabs" aria-label="Navegação principal desktop">
           {mainTabs.map((item) => (
             <button
@@ -280,9 +425,14 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <button className="display-btn" onClick={() => setDisplayPrefsOpen(true)} aria-label="Preferências de tela">
-          Aa
-        </button>
+        <div className="app-header-right">
+          <span className="user-pill" title={auth?.email || 'Convidado'}>
+            {displayName}
+          </span>
+          <button className="display-btn" onClick={() => setDisplayPrefsOpen(true)} aria-label="Preferências de tela">
+            Aa
+          </button>
+        </div>
       </header>
 
       <section className="content">{page}</section>
@@ -375,6 +525,47 @@ export default function App() {
                 </select>
               </label>
 
+              <div className="card onboarding-auth-card">
+                <p className="card-sub" style={{ marginTop: 0 }}>
+                  Login recomendado para sincronização e recursos de cuidado
+                </p>
+                <button
+                  className="btn-primary onboarding-google-btn"
+                  onClick={handleOnboardingGoogleSignIn}
+                  disabled={!googleReady || googleBusy}
+                >
+                  {googleBusy ? 'Conectando Google...' : 'Entrar com Google (recomendado)'}
+                </button>
+                <p className="card-sub" style={{ marginBottom: 0 }}>
+                  Conta local (opcional, com recursos limitados)
+                </p>
+                <label>
+                  E-mail local
+                  <input
+                    type="text"
+                    value={onboardingLocalEmail}
+                    onChange={(e) => setOnboardingLocalEmail(e.target.value)}
+                    placeholder="exemplo@email.com"
+                  />
+                </label>
+                <label>
+                  Senha local
+                  <input
+                    type="password"
+                    value={onboardingLocalPassword}
+                    onChange={(e) => setOnboardingLocalPassword(e.target.value)}
+                    placeholder="Senha da conta local"
+                  />
+                </label>
+                <button className="btn-soft" onClick={handleOnboardingLocalSignIn}>
+                  Continuar com conta local
+                </button>
+                <p className="card-sub" style={{ marginBottom: 0 }}>
+                  Conta local não tem algumas funções (sincronização em nuvem e vínculos com cuidador/parente).
+                </p>
+                {onboardingAuthStatus && <p className="card-sub">{onboardingAuthStatus}</p>}
+              </div>
+
               <div className="card" style={{ marginTop: 4 }}>
                 <p className="card-sub" style={{ margin: 0 }}>
                   LGPD: os dados ficam no seu dispositivo por padrão.
@@ -395,7 +586,7 @@ export default function App() {
             </div>
 
             <div className="row" style={{ marginTop: 14 }}>
-              <button className="btn-primary" onClick={finishOnboarding} disabled={!onboardingLegalAccepted}>
+              <button className="btn-primary" onClick={finishOnboarding} disabled={!canFinishOnboarding}>
                 Finalizar configuração
               </button>
             </div>

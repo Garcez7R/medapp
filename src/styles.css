@@ -52,6 +52,7 @@ body {
 }
 
 .app-header {
+  position: relative;
   padding: 12px 14px;
   background: linear-gradient(120deg, var(--primary-strong), var(--primary));
   color: #f8fafc;
@@ -63,10 +64,38 @@ body {
   box-shadow: 0 4px 16px rgba(2, 6, 23, 0.18);
 }
 
+.app-brand {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .desktop-tabs {
   margin-left: auto;
   display: none;
   gap: 8px;
+}
+
+.app-header-right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-pill {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .desktop-tab-btn {
@@ -90,7 +119,6 @@ body {
 }
 
 .display-btn {
-  margin-left: 8px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
@@ -117,6 +145,7 @@ body {
 
 .page-title {
   margin: 0 0 12px;
+  text-align: center;
 }
 
 .med-list {
@@ -365,6 +394,15 @@ button:active {
   gap: 10px;
 }
 
+.onboarding-auth-card {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.onboarding-google-btn {
+  width: 100%;
+}
+
 label {
   font-size: 0.92rem;
   color: var(--muted);
@@ -518,6 +556,18 @@ textarea {
 }
 
 @media (max-width: 560px) {
+  .app-brand {
+    position: static;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .user-pill {
+    max-width: 96px;
+    font-size: 0.72rem;
+    padding: 5px 8px;
+  }
+
   .content {
     padding: 12px;
     padding-bottom: 84px;
@@ -551,6 +601,7 @@ textarea {
 
   .desktop-tabs {
     display: flex;
+    margin-right: 12px;
   }
 
   .edge-swipe-zone {
