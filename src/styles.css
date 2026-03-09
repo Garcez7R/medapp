@@ -110,9 +110,20 @@ body {
 .content {
   flex: 1;
   padding: 16px;
-  padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  padding-bottom: calc(140px + env(safe-area-inset-bottom));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.legal-persistent {
+  margin: 0 16px 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #f8b4b4;
+  background: #fff1f2;
+  color: #881337;
+  font-size: 0.74rem;
+  line-height: 1.35;
 }
 
 .page-title {
@@ -505,7 +516,7 @@ textarea {
 @media (max-width: 560px) {
   .content {
     padding: 12px;
-    padding-bottom: 84px;
+    padding-bottom: 140px;
   }
 
   .card-head {
@@ -557,5 +568,14 @@ textarea {
 
   .med-list {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+
+  .content {
+    padding-bottom: 34px;
+  }
+
+  .legal-persistent {
+    margin: 0 24px 16px;
+    font-size: 0.76rem;
   }
 }

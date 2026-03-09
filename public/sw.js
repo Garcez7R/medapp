@@ -1,5 +1,12 @@
-const CACHE = 'medapp-pwa-v2';
-const ASSETS = ['/', '/manifest.webmanifest'];
+const CACHE = 'medapp-pwa-v3';
+const ASSETS = [
+  '/',
+  '/manifest.webmanifest',
+  '/medapp-icon-192.png',
+  '/medapp-icon-512.png',
+  '/medapp-icon-maskable-192.png',
+  '/medapp-icon-maskable-512.png'
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));

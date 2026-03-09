@@ -133,6 +133,11 @@ export default function App() {
 
       <section className="content">{page}</section>
 
+      <section className="legal-persistent" role="note" aria-label="Aviso legal">
+        LGPD: dados pessoais ficam no dispositivo por padrão. Aviso: o MedApp não substitui orientação médica
+        e não se responsabiliza por doses não tomadas por falhas de telefone, bateria, silencioso ou indisponibilidade do aparelho.
+      </section>
+
       <BottomNav currentTab={tab} onChange={handleTabChange} />
 
       <SideMenu

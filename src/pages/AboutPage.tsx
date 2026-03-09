@@ -96,6 +96,14 @@ export function AboutPage() {
       return;
     }
 
+    const consentInstall = window.confirm(
+      'Antes de instalar: o MedApp segue boas práticas de LGPD para dados locais no dispositivo, mas não substitui orientação médica. O app não se responsabiliza por doses não tomadas por falhas de telefone, bateria, modo silencioso, falta de internet ou indisponibilidade do aparelho. Deseja continuar?'
+    );
+    if (!consentInstall) {
+      setStatus('Instalação cancelada. Revise os termos legais na seção LGPD e conformidade.');
+      return;
+    }
+
     const promptEvent = window.__medappInstallPrompt as BeforeInstallPromptEvent | undefined;
     if (!promptEvent) {
       setStatus(
@@ -146,6 +154,10 @@ export function AboutPage() {
           <li>As informações são usadas para operação do app (agenda, lembretes e histórico).</li>
           <li>Você pode solicitar revogação de consentimento desativando recursos opcionais.</li>
           <li>O app não substitui orientação médica profissional.</li>
+          <li>
+            O MedApp não se responsabiliza por doses não tomadas por falhas de telefone, bateria,
+            aparelho em silencioso, bloqueios do sistema operacional ou indisponibilidade de rede/dispositivo.
+          </li>
         </ul>
       </div>
 
