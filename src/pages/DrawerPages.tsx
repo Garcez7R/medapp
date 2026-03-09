@@ -32,7 +32,7 @@ type PrivacyData = {
   cloudBackup: boolean;
 };
 
-type GoogleUserInfo = {
+type GoogleCredentialPayload = {
   email?: string;
   name?: string;
   picture?: string;
@@ -42,14 +42,25 @@ declare global {
   interface Window {
     google?: {
       accounts: {
-        oauth2: {
-          initTokenClient: (config: {
+        id: {
+          initialize: (config: {
             client_id: string;
-            scope: string;
-            callback: (response: { access_token?: string; error?: string }) => void;
+            callback: (response: { credential?: string }) => void;
           }) => {
             requestAccessToken: (options?: { prompt?: string }) => void;
           };
+          renderButton: (
+            parent: HTMLElement,
+            options: {
+              type?: 'standard' | 'icon';
+              theme?: 'outline' | 'filled_blue' | 'filled_black';
+              size?: 'large' | 'medium' | 'small';
+              width?: number | string;
+              text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
+              shape?: 'rectangular' | 'pill' | 'circle' | 'square';
+            }
+          ) => void;
+          prompt: (listener?: (notification: unknown) => void) => void;
         };
       };
     };
@@ -68,6 +79,23 @@ function readJson<T>(key: string, fallback: T): T {
 
 function writeJson<T>(key: string, value: T): void {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function parseJwtPayload(token: string): GoogleCredentialPayload | null {
+  try {
+    const payloadBase64 = token.split('.')[1];
+    if (!payloadBase64) return null;
+    const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = decodeURIComponent(
+      atob(normalized)
+        .split('')
+        .map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`)
+        .join('')
+    );
+    return JSON.parse(decoded) as GoogleCredentialPayload;
+  } catch {
+    return null;
+  }
 }
 
 function useCrudState(storageKey: string) {
@@ -308,6 +336,10 @@ function ProfilePage() {
   );
   const [googleReady, setGoogleReady] = useState(false);
   const [settings, setSettingsState] = useState(() => loadSettings());
+  const [googleConfigured, setGoogleConfigured] = useState(false);
+  const [googleError, setGoogleError] = useState('');
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [googleRenderNonce, setGoogleRenderNonce] = useState(0);
 
   useEffect(() => {
     if (window.google) {
@@ -322,6 +354,59 @@ function ProfilePage() {
     script.onload = () => setGoogleReady(true);
     document.head.appendChild(script);
   }, []);
+
+  useEffect(() => {
+    if (!googleReady || !googleClientId.trim() || !window.google) {
+      setGoogleConfigured(false);
+      return;
+    }
+
+    const container = document.getElementById('medapp-google-login-button');
+    if (!container) return;
+
+    setGoogleError('');
+    setGoogleConfigured(false);
+    container.innerHTML = '';
+
+    window.google.accounts.id.initialize({
+      client_id: googleClientId.trim(),
+      callback: ({ credential }) => {
+        if (!credential) {
+          setGoogleError('Não foi possível concluir o login com Google.');
+          return;
+        }
+        const payload = parseJwtPayload(credential);
+        if (!payload?.email) {
+          setGoogleError('Resposta do Google inválida.');
+          return;
+        }
+
+        const next = {
+          email: payload.email,
+          signedInAt: new Date().toISOString(),
+          provider: 'google' as const,
+          name: payload.name,
+          picture: payload.picture
+        };
+
+        setAuth(next);
+        saveAuth(next);
+        setGoogleBusy(false);
+        setGoogleError('');
+        trackEvent('auth_login_google', `Login com Google: ${next.email}`);
+      }
+    });
+
+    window.google.accounts.id.renderButton(container, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      width: 320,
+      text: 'signin_with',
+      shape: 'pill'
+    });
+    setGoogleConfigured(true);
+  }, [googleReady, googleClientId, googleRenderNonce]);
 
   function save() {
     writeJson('medapp.profile', profile);
@@ -361,7 +446,7 @@ function ProfilePage() {
     trackEvent('ui_settings', 'Preferências de acessibilidade atualizadas');
   }
 
-  async function startGoogleSignIn() {
+  function startGoogleSignIn() {
     if (!googleClientId.trim()) {
       window.alert('Informe o Google Client ID para habilitar login com Google.');
       return;
@@ -369,50 +454,14 @@ function ProfilePage() {
 
     localStorage.setItem('medapp.google.clientId', googleClientId.trim());
 
-    if (!window.google) {
+    if (!window.google || !googleConfigured) {
       window.alert('SDK do Google ainda não carregou. Tente novamente em alguns segundos.');
       return;
     }
 
-    const tokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: googleClientId.trim(),
-      scope: 'openid email profile',
-      callback: async ({ access_token, error }) => {
-        if (error || !access_token) {
-          window.alert('Não foi possível concluir o login com Google.');
-          return;
-        }
-
-        try {
-          const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: {
-              Authorization: `Bearer ${access_token}`
-            }
-          });
-          if (!response.ok) throw new Error('userinfo_failed');
-          const payload = (await response.json()) as GoogleUserInfo;
-          if (!payload.email) {
-            window.alert('Resposta do Google inválida.');
-            return;
-          }
-
-          const next = {
-            email: payload.email,
-            signedInAt: new Date().toISOString(),
-            provider: 'google' as const,
-            name: payload.name,
-            picture: payload.picture
-          };
-          setAuth(next);
-          saveAuth(next);
-          trackEvent('auth_login_google', `Login com Google: ${next.email}`);
-        } catch {
-          window.alert('Falha ao obter dados da conta Google.');
-        }
-      }
-    });
-
-    tokenClient.requestAccessToken({ prompt: 'select_account' });
+    setGoogleBusy(true);
+    setGoogleError('');
+    window.google.accounts.id.prompt();
   }
 
   return (
@@ -504,9 +553,19 @@ function ProfilePage() {
                 placeholder="Cole aqui o Client ID do Google OAuth"
               />
             </label>
-            <button className="btn-soft" onClick={startGoogleSignIn} disabled={!googleReady}>
+            <button
+              className="btn-soft"
+              onClick={() => {
+                setGoogleRenderNonce((current) => current + 1);
+                startGoogleSignIn();
+              }}
+              disabled={!googleReady}
+            >
               {googleReady ? 'Entrar com Google (escolher conta)' : 'Carregando Google...'}
             </button>
+            <div id="medapp-google-login-button" style={{ minHeight: 48 }} />
+            {googleBusy && <p className="card-sub">Abrindo seletor de contas Google...</p>}
+            {googleError && <p className="card-sub">{googleError}</p>}
           </>
         )}
       </div>
