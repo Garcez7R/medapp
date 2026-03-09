@@ -138,6 +138,17 @@ export function AboutPage() {
         </p>
       </div>
 
+      <div className="card" style={{ marginTop: 12 }}>
+        <h3 className="card-title">LGPD e conformidade</h3>
+        <ul className="card-sub">
+          <li>Os dados são armazenados localmente no seu dispositivo por padrão.</li>
+          <li>Você pode exportar, importar ou apagar os dados em Privacidade e Segurança.</li>
+          <li>As informações são usadas para operação do app (agenda, lembretes e histórico).</li>
+          <li>Você pode solicitar revogação de consentimento desativando recursos opcionais.</li>
+          <li>O app não substitui orientação médica profissional.</li>
+        </ul>
+      </div>
+
       <div className="row" style={{ marginTop: 12 }}>
         <button className="btn-primary" onClick={testarNotificacaoInstantanea}>
           Instantânea

@@ -127,6 +127,10 @@ body {
   color: var(--muted);
 }
 
+.card-sub li + li {
+  margin-top: 6px;
+}
+
 .row {
   display: flex;
   gap: 8px;
