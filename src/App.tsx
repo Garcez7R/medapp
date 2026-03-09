@@ -134,7 +134,7 @@ export default function App() {
                   type="text"
                   value={onboardingName}
                   onChange={(e) => setOnboardingName(e.target.value)}
-                  placeholder="Ex: Rafael"
+                  placeholder="Ex: Seu nome"
                 />
               </label>
 
