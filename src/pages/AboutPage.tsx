@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -14,6 +14,7 @@ export function AboutPage() {
     () => Boolean(window.__medappInstallPrompt)
   );
   const [status, setStatus] = useState('');
+  const scheduledTimerRef = useRef<number | null>(null);
   const installLabel = useMemo(() => {
     if (isStandaloneMode()) return 'App já instalado';
     if (installAvailable) return 'Instalar app';
@@ -32,6 +33,9 @@ export function AboutPage() {
     return () => {
       window.removeEventListener('medapp-install-available', onInstallAvailable);
       window.removeEventListener('medapp-installed', onInstalled);
+      if (scheduledTimerRef.current) {
+        window.clearTimeout(scheduledTimerRef.current);
+      }
     };
   }, []);
 
@@ -61,9 +65,12 @@ export function AboutPage() {
 
     try {
       if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration();
+        const registration = await navigator.serviceWorker.ready;
         if (registration) {
-          await registration.showNotification(title, { body, tag: 'medapp-about' });
+          await registration.showNotification(title, {
+            body,
+            tag: `medapp-about-${Date.now()}`
+          });
           return;
         }
       }
@@ -71,7 +78,7 @@ export function AboutPage() {
       // fallback below
     }
 
-    new api(title, { body });
+    new api(title, { body, tag: `medapp-about-${Date.now()}` });
   }
 
   async function testarNotificacaoInstantanea() {
@@ -84,9 +91,16 @@ export function AboutPage() {
     const permission = await ensureNotificationPermission();
     if (!permission) return;
 
+    if (scheduledTimerRef.current) {
+      window.clearTimeout(scheduledTimerRef.current);
+      scheduledTimerRef.current = null;
+    }
+
     setStatus('Notificação agendada para 10 segundos.');
-    setTimeout(() => {
+    scheduledTimerRef.current = window.setTimeout(() => {
       void showNotification('Notificação Agendada', 'Essa notificação foi agendada para 10 segundos depois.');
+      setStatus('Notificação agendada disparada.');
+      scheduledTimerRef.current = null;
     }, 10_000);
   }
 
