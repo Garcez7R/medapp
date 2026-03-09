@@ -32,7 +32,7 @@ type PrivacyData = {
   cloudBackup: boolean;
 };
 
-type GoogleCredentialPayload = {
+type GoogleUserInfo = {
   email?: string;
   name?: string;
   picture?: string;
@@ -42,12 +42,14 @@ declare global {
   interface Window {
     google?: {
       accounts: {
-        id: {
-          initialize: (config: {
+        oauth2: {
+          initTokenClient: (config: {
             client_id: string;
-            callback: (response: { credential?: string }) => void;
-          }) => void;
-          prompt: () => void;
+            scope: string;
+            callback: (response: { access_token?: string; error?: string }) => void;
+          }) => {
+            requestAccessToken: (options?: { prompt?: string }) => void;
+          };
         };
       };
     };
@@ -66,23 +68,6 @@ function readJson<T>(key: string, fallback: T): T {
 
 function writeJson<T>(key: string, value: T): void {
   localStorage.setItem(key, JSON.stringify(value));
-}
-
-function parseJwtPayload(token: string): GoogleCredentialPayload | null {
-  try {
-    const payloadBase64 = token.split('.')[1];
-    if (!payloadBase64) return null;
-    const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = decodeURIComponent(
-      atob(normalized)
-        .split('')
-        .map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`)
-        .join('')
-    );
-    return JSON.parse(decoded) as GoogleCredentialPayload;
-  } catch {
-    return null;
-  }
 }
 
 function useCrudState(storageKey: string) {
@@ -376,7 +361,7 @@ function ProfilePage() {
     trackEvent('ui_settings', 'Preferências de acessibilidade atualizadas');
   }
 
-  function startGoogleSignIn() {
+  async function startGoogleSignIn() {
     if (!googleClientId.trim()) {
       window.alert('Informe o Google Client ID para habilitar login com Google.');
       return;
@@ -389,31 +374,45 @@ function ProfilePage() {
       return;
     }
 
-    window.google.accounts.id.initialize({
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: googleClientId.trim(),
-      callback: ({ credential }) => {
-        if (!credential) {
+      scope: 'openid email profile',
+      callback: async ({ access_token, error }) => {
+        if (error || !access_token) {
           window.alert('Não foi possível concluir o login com Google.');
           return;
         }
-        const payload = parseJwtPayload(credential);
-        if (!payload?.email) {
-          window.alert('Resposta do Google inválida.');
-          return;
+
+        try {
+          const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: {
+              Authorization: `Bearer ${access_token}`
+            }
+          });
+          if (!response.ok) throw new Error('userinfo_failed');
+          const payload = (await response.json()) as GoogleUserInfo;
+          if (!payload.email) {
+            window.alert('Resposta do Google inválida.');
+            return;
+          }
+
+          const next = {
+            email: payload.email,
+            signedInAt: new Date().toISOString(),
+            provider: 'google' as const,
+            name: payload.name,
+            picture: payload.picture
+          };
+          setAuth(next);
+          saveAuth(next);
+          trackEvent('auth_login_google', `Login com Google: ${next.email}`);
+        } catch {
+          window.alert('Falha ao obter dados da conta Google.');
         }
-        const next = {
-          email: payload.email,
-          signedInAt: new Date().toISOString(),
-          provider: 'google' as const,
-          name: payload.name,
-          picture: payload.picture
-        };
-        setAuth(next);
-        saveAuth(next);
-        trackEvent('auth_login_google', `Login com Google: ${next.email}`);
       }
     });
-    window.google.accounts.id.prompt();
+
+    tokenClient.requestAccessToken({ prompt: 'select_account' });
   }
 
   return (
@@ -506,7 +505,7 @@ function ProfilePage() {
               />
             </label>
             <button className="btn-soft" onClick={startGoogleSignIn} disabled={!googleReady}>
-              {googleReady ? 'Entrar com Google' : 'Carregando Google...'}
+              {googleReady ? 'Entrar com Google (escolher conta)' : 'Carregando Google...'}
             </button>
           </>
         )}
