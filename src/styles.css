@@ -356,6 +356,21 @@ button:active {
   padding: 16px;
 }
 
+.lock-modal {
+  width: min(420px, 100%);
+}
+
+.lock-modal input[type='password'] {
+  font-size: 1.25rem;
+  letter-spacing: 0.28em;
+  text-align: center;
+  padding: 14px 12px;
+}
+
+.legal-error {
+  color: #991b1b;
+}
+
 .form-grid {
   display: grid;
   gap: 10px;

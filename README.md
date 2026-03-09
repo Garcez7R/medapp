@@ -22,7 +22,6 @@ Este repositório foi consolidado para manter apenas a versão web (PWA) no `mai
 - Calendário da Saúde
 - Histórico de Atividades
 - Privacidade e Segurança
-- Assistente de Saúde
 
 ### Recursos já implementados
 - CRUD de medicamentos

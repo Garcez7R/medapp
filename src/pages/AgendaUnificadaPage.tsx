@@ -1,27 +1,76 @@
 import { useMemo, useState } from 'react';
-import { loadStringArray, saveStringArray } from '../utils';
+import { createId, loadAgendaItems, loadStringArray, saveStringArray } from '../utils';
 
 type AgendaTab = 'lista' | 'calendario' | 'diario';
 
-const calendarData: Record<string, string[]> = {
-  '2025-07-15': ['Consulta com Dr. Silva às 15h'],
-  '2025-07-20': ['Exame de sangue', 'Retorno de exame']
+type AgendaListEntry = {
+  id: string;
+  text: string;
+  date: string;
 };
+
+const AGENDA_LIST_KEY = 'medapp.agenda.list.entries';
+
+function loadAgendaListEntries(): AgendaListEntry[] {
+  const raw = localStorage.getItem(AGENDA_LIST_KEY);
+  if (!raw) {
+    // Migration path from old string-only list.
+    const legacy = loadStringArray('events');
+    if (!legacy.length) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    const migrated = legacy.map((text) => ({ id: createId(), text, date: today }));
+    localStorage.setItem(AGENDA_LIST_KEY, JSON.stringify(migrated));
+    return migrated;
+  }
+  try {
+    const parsed = JSON.parse(raw) as AgendaListEntry[];
+    return parsed.filter((item) => item.id && item.text && item.date);
+  } catch {
+    return [];
+  }
+}
+
+function saveAgendaListEntries(entries: AgendaListEntry[]) {
+  localStorage.setItem(AGENDA_LIST_KEY, JSON.stringify(entries));
+}
 
 export function AgendaUnificadaPage() {
   const [tab, setTab] = useState<AgendaTab>('lista');
-  const [eventos, setEventos] = useState<string[]>(() => loadStringArray('events'));
+  const [eventos, setEventos] = useState<AgendaListEntry[]>(() => loadAgendaListEntries());
   const [notas, setNotas] = useState<string[]>(() => loadStringArray('notes'));
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+  const [newEventText, setNewEventText] = useState('');
+  const [newEventDate, setNewEventDate] = useState(new Date().toISOString().slice(0, 10));
 
-  const eventosDoDia = useMemo(() => calendarData[selectedDate] ?? [], [selectedDate]);
+  const agendaMedicaItems = useMemo(
+    () => loadAgendaItems().sort((a, b) => `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`)),
+    [eventos, notas]
+  );
+
+  const eventosDoDiaLista = useMemo(
+    () => eventos.filter((entry) => entry.date === selectedDate),
+    [eventos, selectedDate]
+  );
+
+  const eventosDoDiaAgendaMedica = useMemo(
+    () => agendaMedicaItems.filter((entry) => entry.data === selectedDate),
+    [agendaMedicaItems, selectedDate]
+  );
 
   function addEvento() {
-    const value = window.prompt('Descrição do evento');
-    if (!value || !value.trim()) return;
-    const next = [...eventos, value.trim()];
+    const value = newEventText.trim();
+    if (!value) return;
+    const date = newEventDate || new Date().toISOString().slice(0, 10);
+    const next = [{ id: createId(), text: value, date }, ...eventos];
     setEventos(next);
-    saveStringArray('events', next);
+    saveAgendaListEntries(next);
+    setNewEventText('');
+  }
+
+  function removeEvento(id: string) {
+    const next = eventos.filter((entry) => entry.id !== id);
+    setEventos(next);
+    saveAgendaListEntries(next);
   }
 
   function addNota() {
@@ -53,20 +102,40 @@ export function AgendaUnificadaPage() {
 
       {tab === 'lista' && (
         <div>
+          <div className="card form-grid">
+            <label>
+              Novo evento
+              <input
+                type="text"
+                value={newEventText}
+                onChange={(e) => setNewEventText(e.target.value)}
+                placeholder="Ex: Comprar medicação na farmácia"
+              />
+            </label>
+            <label>
+              Data
+              <input type="date" value={newEventDate} onChange={(e) => setNewEventDate(e.target.value)} />
+            </label>
+            <button className="btn-primary" onClick={addEvento}>
+              Adicionar evento
+            </button>
+          </div>
+
           {eventos.length === 0 ? (
-            <p className="empty">📋 Nenhum evento registrado. Toque em + para adicionar.</p>
+            <p className="empty">📋 Nenhum evento registrado.</p>
           ) : (
-            <div className="med-list">
-              {eventos.map((evento, index) => (
-                <article className="card" key={`${evento}-${index}`}>
-                  <p>{evento}</p>
+            <div className="med-list" style={{ marginTop: 12 }}>
+              {eventos.map((evento) => (
+                <article className="card" key={evento.id}>
+                  <p>{evento.text}</p>
+                  <p className="card-sub">Data: {evento.date}</p>
+                  <button className="btn-danger" onClick={() => removeEvento(evento.id)}>
+                    Remover
+                  </button>
                 </article>
               ))}
             </div>
           )}
-          <button className="fab btn-primary" onClick={addEvento} aria-label="Adicionar evento">
-            +
-          </button>
         </div>
       )}
 
@@ -77,9 +146,20 @@ export function AgendaUnificadaPage() {
             <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
           </label>
           <div style={{ marginTop: 12 }}>
-            {eventosDoDia.length === 0 && <p>Nenhum evento para esta data</p>}
-            {eventosDoDia.map((evento) => (
-              <p key={evento}>• {evento}</p>
+            <h3 className="card-title">Eventos da Lista</h3>
+            {eventosDoDiaLista.length === 0 && <p className="card-sub">Nenhum evento da lista nesta data.</p>}
+            {eventosDoDiaLista.map((evento) => (
+              <p key={evento.id}>• {evento.text}</p>
+            ))}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <h3 className="card-title">Agenda Médica</h3>
+            {eventosDoDiaAgendaMedica.length === 0 && <p className="card-sub">Nenhum compromisso médico nesta data.</p>}
+            {eventosDoDiaAgendaMedica.map((evento) => (
+              <p key={evento.id}>
+                • {evento.compromisso}
+                {evento.hora ? ` às ${evento.hora}` : ''}
+              </p>
             ))}
           </div>
         </div>

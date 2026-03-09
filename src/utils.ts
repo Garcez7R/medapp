@@ -116,6 +116,12 @@ export function saveAuth(auth: AuthState | null): void {
 }
 
 export function trackEvent(type: string, message: string): void {
+  const privacy = parseJson<{ analyticsEnabled?: boolean }>(
+    localStorage.getItem('medapp.privacy'),
+    { analyticsEnabled: false }
+  );
+  if (!privacy.analyticsEnabled) return;
+
   const events = parseJson<AnalyticsEvent[]>(localStorage.getItem(ANALYTICS_KEY), []);
   const next: AnalyticsEvent = {
     id: createId(),

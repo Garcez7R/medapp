@@ -28,6 +28,9 @@ type ProfileData = {
 
 type PrivacyData = {
   lockEnabled: boolean;
+  lockScope: 'all' | 'sensitive';
+  lockRememberHours: 0 | 8 | 24;
+  preferBiometric: boolean;
   analyticsEnabled: boolean;
   cloudBackup: boolean;
 };
@@ -96,6 +99,19 @@ function parseJwtPayload(token: string): GoogleCredentialPayload | null {
   } catch {
     return null;
   }
+}
+
+function toBase64Url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function randomBytes(length: number): Uint8Array {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return bytes;
 }
 
 function useCrudState(storageKey: string) {
@@ -669,11 +685,21 @@ function PrivacyPage() {
   const [privacy, setPrivacy] = useState<PrivacyData>(() =>
     readJson<PrivacyData>('medapp.privacy', {
       lockEnabled: false,
+      lockScope: 'all',
+      lockRememberHours: 8,
+      preferBiometric: false,
       analyticsEnabled: false,
       cloudBackup: false
     })
   );
   const [importText, setImportText] = useState('');
+  const [pinDraft, setPinDraft] = useState('');
+  const [pinConfirm, setPinConfirm] = useState('');
+  const [hasPin, setHasPin] = useState(() => Boolean(localStorage.getItem('medapp.lock.pin')));
+  const [hasBiometric, setHasBiometric] = useState(
+    () => Boolean(localStorage.getItem('medapp.lock.biometric.credentialId'))
+  );
+  const [biometricBusy, setBiometricBusy] = useState(false);
 
   function save(next: PrivacyData) {
     setPrivacy(next);
@@ -710,6 +736,86 @@ function PrivacyPage() {
     window.location.reload();
   }
 
+  function savePin() {
+    const normalizedPin = pinDraft.trim();
+    if (!/^\d{4,8}$/.test(normalizedPin)) {
+      window.alert('Defina um PIN numérico entre 4 e 8 dígitos.');
+      return;
+    }
+    if (normalizedPin !== pinConfirm.trim()) {
+      window.alert('PIN e confirmação não conferem.');
+      return;
+    }
+    localStorage.setItem('medapp.lock.pin', normalizedPin);
+    setHasPin(true);
+    setPinDraft('');
+    setPinConfirm('');
+    window.alert('PIN de bloqueio salvo com sucesso.');
+  }
+
+  function clearPin() {
+    if (!window.confirm('Remover PIN de bloqueio do app?')) return;
+    localStorage.removeItem('medapp.lock.pin');
+    setHasPin(false);
+    setPrivacy((prev) => {
+      const next = { ...prev, lockEnabled: false };
+      writeJson('medapp.privacy', next);
+      return next;
+    });
+  }
+
+  async function enableBiometric() {
+    if (typeof PublicKeyCredential === 'undefined' || !navigator.credentials?.create) {
+      window.alert('Biometria não suportada neste navegador/dispositivo.');
+      return;
+    }
+
+    try {
+      setBiometricBusy(true);
+      const challenge = randomBytes(32);
+      const userId = randomBytes(16);
+      const credential = (await navigator.credentials.create({
+        publicKey: {
+          challenge: challenge as unknown as BufferSource,
+          rp: { name: 'MedApp' },
+          user: {
+            id: userId as unknown as BufferSource,
+            name: 'medapp-user',
+            displayName: 'Usuário MedApp'
+          },
+          pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'preferred'
+          },
+          timeout: 60_000,
+          attestation: 'none'
+        }
+      })) as PublicKeyCredential | null;
+
+      if (!credential) {
+        window.alert('Não foi possível ativar a biometria.');
+        return;
+      }
+
+      localStorage.setItem('medapp.lock.biometric.credentialId', toBase64Url(credential.rawId));
+      setHasBiometric(true);
+      save({ ...privacy, preferBiometric: true });
+      window.alert('Biometria ativada.');
+    } catch {
+      window.alert('Falha ao ativar biometria. Verifique as permissões do aparelho.');
+    } finally {
+      setBiometricBusy(false);
+    }
+  }
+
+  function disableBiometric() {
+    if (!window.confirm('Desativar biometria para desbloqueio?')) return;
+    localStorage.removeItem('medapp.lock.biometric.credentialId');
+    setHasBiometric(false);
+    save({ ...privacy, preferBiometric: false });
+  }
+
   return (
     <div>
       <h2 className="page-title">Privacidade e Segurança</h2>
@@ -718,9 +824,47 @@ function PrivacyPage() {
           <input
             type="checkbox"
             checked={privacy.lockEnabled}
-            onChange={(e) => save({ ...privacy, lockEnabled: e.target.checked })}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              if (checked && !hasPin) {
+                window.alert('Defina um PIN antes de ativar o bloqueio do app.');
+                return;
+              }
+              save({ ...privacy, lockEnabled: checked });
+            }}
           />
-          Bloqueio de app (simulação)
+          Bloqueio de app por PIN
+        </label>
+        <label>
+          Escopo do bloqueio
+          <select
+            value={privacy.lockScope}
+            onChange={(e) =>
+              save({
+                ...privacy,
+                lockScope: (e.target.value as 'all' | 'sensitive') || 'all'
+              })
+            }
+          >
+            <option value="all">App inteiro</option>
+            <option value="sensitive">Apenas áreas sensíveis (modo cuidador)</option>
+          </select>
+        </label>
+        <label>
+          Lembrar desbloqueio por
+          <select
+            value={privacy.lockRememberHours}
+            onChange={(e) =>
+              save({
+                ...privacy,
+                lockRememberHours: (Number(e.target.value) as 0 | 8 | 24) || 0
+              })
+            }
+          >
+            <option value={0}>Sempre pedir</option>
+            <option value={8}>8 horas</option>
+            <option value={24}>24 horas</option>
+          </select>
         </label>
         <label className="checkbox-row">
           <input
@@ -736,7 +880,63 @@ function PrivacyPage() {
             checked={privacy.cloudBackup}
             onChange={(e) => save({ ...privacy, cloudBackup: e.target.checked })}
           />
-          Backup em nuvem (preferência)
+          Exportação manual de backup
+        </label>
+
+        <label>
+          PIN do app (4 a 8 dígitos)
+          <input
+            type="password"
+            inputMode="numeric"
+            value={pinDraft}
+            onChange={(e) => setPinDraft(e.target.value.replace(/\D/g, ''))}
+            placeholder={hasPin ? 'Informe novo PIN' : 'Defina seu PIN'}
+          />
+        </label>
+        <label>
+          Confirmar PIN
+          <input
+            type="password"
+            inputMode="numeric"
+            value={pinConfirm}
+            onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, ''))}
+            placeholder="Repita o PIN"
+          />
+        </label>
+        <div className="row">
+          <button className="btn-primary" onClick={savePin}>
+            {hasPin ? 'Atualizar PIN' : 'Salvar PIN'}
+          </button>
+          {hasPin && (
+            <button className="btn-danger" onClick={clearPin}>
+              Remover PIN
+            </button>
+          )}
+        </div>
+        <div className="row">
+          {!hasBiometric ? (
+            <button className="btn-soft" onClick={() => void enableBiometric()} disabled={biometricBusy}>
+              {biometricBusy ? 'Ativando biometria...' : 'Ativar biometria do dispositivo'}
+            </button>
+          ) : (
+            <button className="btn-danger" onClick={disableBiometric}>
+              Remover biometria
+            </button>
+          )}
+        </div>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={privacy.preferBiometric}
+            onChange={(e) => {
+              if (e.target.checked && !hasBiometric) {
+                window.alert('Ative a biometria do dispositivo primeiro.');
+                return;
+              }
+              save({ ...privacy, preferBiometric: e.target.checked });
+            }}
+          />
+          Priorizar biometria no desbloqueio
         </label>
 
         <button className="btn-soft" onClick={exportData}>
