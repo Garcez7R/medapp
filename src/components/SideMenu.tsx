@@ -1,4 +1,10 @@
+import { useEffect, useState } from 'react';
 import { drawerItems, type ActivePage } from '../nav';
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+};
 
 interface SideMenuProps {
   open: boolean;
@@ -8,6 +14,39 @@ interface SideMenuProps {
 }
 
 export function SideMenu({ open, activePage, onClose, onSelect }: SideMenuProps) {
+  const [installAvailable, setInstallAvailable] = useState<boolean>(() => Boolean(window.__medappInstallPrompt));
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+
+  useEffect(() => {
+    const onInstallAvailable = () => setInstallAvailable(true);
+    const onInstalled = () => setInstallAvailable(false);
+
+    window.addEventListener('medapp-install-available', onInstallAvailable);
+    window.addEventListener('medapp-installed', onInstalled);
+    return () => {
+      window.removeEventListener('medapp-install-available', onInstallAvailable);
+      window.removeEventListener('medapp-installed', onInstalled);
+    };
+  }, []);
+
+  async function installFromMenu() {
+    if (isStandalone) {
+      window.alert('O MedApp já está instalado neste dispositivo.');
+      onClose();
+      return;
+    }
+
+    const promptEvent = window.__medappInstallPrompt as BeforeInstallPromptEvent | undefined;
+    if (!promptEvent) {
+      window.alert('Instalação indisponível agora. Tente novamente em alguns instantes.');
+      return;
+    }
+
+    await promptEvent.prompt();
+    await promptEvent.userChoice;
+    onClose();
+  }
+
   if (!open) return null;
 
   return (
@@ -28,6 +67,10 @@ export function SideMenu({ open, activePage, onClose, onSelect }: SideMenuProps)
               <span>{item.label}</span>
             </button>
           ))}
+          <button className="side-item" onClick={() => void installFromMenu()} disabled={!installAvailable && !isStandalone}>
+            <span>⬇️</span>
+            <span>{isStandalone ? 'App já instalado' : 'Instalar app'}</span>
+          </button>
         </div>
       </aside>
     </div>
