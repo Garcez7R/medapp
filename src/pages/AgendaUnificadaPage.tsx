@@ -103,17 +103,6 @@ export function AgendaUnificadaPage() {
           Lista: <strong>{eventos.length}</strong> evento(s) • Compromissos médicos:{' '}
           <strong>{agendaMedicaItems.length}</strong> • Diário: <strong>{notas.length}</strong> nota(s)
         </p>
-        <div className="row" style={{ marginTop: 10 }}>
-          <button className="btn-soft" onClick={() => setTab('lista')}>
-            Ir para Lista
-          </button>
-          <button className="btn-soft" onClick={() => setTab('calendario')}>
-            Ir para Calendário
-          </button>
-          <button className="btn-soft" onClick={() => setTab('diario')}>
-            Ir para Diário
-          </button>
-        </div>
       </div>
 
       <div className="tabs-row">
