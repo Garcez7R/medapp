@@ -1020,29 +1020,6 @@ function ProfilePage() {
   );
 }
 
-function CalendarPage() {
-  const agenda = loadAgendaItems()
-    .map((event) => ({ id: event.id, title: event.compromisso, date: event.data, subtitle: event.hora }))
-    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''));
-
-  return (
-    <div>
-      <h2 className="page-title">Calendário da Saúde</h2>
-      {agenda.length === 0 && <p className="empty">Nenhum compromisso para exibir no calendário.</p>}
-      <div className="med-list">
-        {agenda.map((item) => (
-          <article className="card" key={item.id}>
-            <h3 className="card-title">{item.title}</h3>
-            <p className="card-sub">
-              {item.date} {item.subtitle ? `• ${item.subtitle}` : ''}
-            </p>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function ActivityLogPage() {
   const [logs, setLogs] = useState<Item[]>(() => readJson<Item[]>('medapp.activity.logs', []));
   const [text, setText] = useState('');
@@ -1417,7 +1394,6 @@ export function DrawerPageRouter({ pageKey }: { pageKey: DrawerPageKey }) {
   if (pageKey === 'relatorios') return <ReportsPage />;
   if (pageKey === 'central_notificacoes') return <NotificationsCenterPage />;
   if (pageKey === 'perfil') return <ProfilePage />;
-  if (pageKey === 'calendario') return <CalendarPage />;
   if (pageKey === 'historico') return <ActivityLogPage />;
   if (pageKey === 'privacidade') return <PrivacyPage />;
 

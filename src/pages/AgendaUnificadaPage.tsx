@@ -41,6 +41,7 @@ export function AgendaUnificadaPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [newEventText, setNewEventText] = useState('');
   const [newEventDate, setNewEventDate] = useState(new Date().toISOString().slice(0, 10));
+  const [quickCalendarEvent, setQuickCalendarEvent] = useState('');
 
   const agendaMedicaItems = useMemo(
     () => loadAgendaItems().sort((a, b) => `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`)),
@@ -67,6 +68,16 @@ export function AgendaUnificadaPage() {
     setNewEventText('');
   }
 
+  function addEventoFromCalendar() {
+    const value = quickCalendarEvent.trim();
+    if (!value) return;
+    const next = [{ id: createId(), text: value, date: selectedDate }, ...eventos];
+    setEventos(next);
+    saveAgendaListEntries(next);
+    setQuickCalendarEvent('');
+    setTab('lista');
+  }
+
   function removeEvento(id: string) {
     const next = eventos.filter((entry) => entry.id !== id);
     setEventos(next);
@@ -84,6 +95,26 @@ export function AgendaUnificadaPage() {
   return (
     <div>
       <h2 className="page-title">Agenda da Saúde</h2>
+      <div className="card" style={{ marginBottom: 12 }}>
+        <p className="card-sub" style={{ marginTop: 0 }}>
+          Resumo rápido
+        </p>
+        <p style={{ margin: 0 }}>
+          Lista: <strong>{eventos.length}</strong> evento(s) • Compromissos médicos:{' '}
+          <strong>{agendaMedicaItems.length}</strong> • Diário: <strong>{notas.length}</strong> nota(s)
+        </p>
+        <div className="row" style={{ marginTop: 10 }}>
+          <button className="btn-soft" onClick={() => setTab('lista')}>
+            Ir para Lista
+          </button>
+          <button className="btn-soft" onClick={() => setTab('calendario')}>
+            Ir para Calendário
+          </button>
+          <button className="btn-soft" onClick={() => setTab('diario')}>
+            Ir para Diário
+          </button>
+        </div>
+      </div>
 
       <div className="tabs-row">
         <button className={`tab-btn ${tab === 'lista' ? 'active' : ''}`} onClick={() => setTab('lista')}>
@@ -145,6 +176,18 @@ export function AgendaUnificadaPage() {
             Selecione uma data
             <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
           </label>
+          <div className="row" style={{ marginTop: 10 }}>
+            <input
+              type="text"
+              value={quickCalendarEvent}
+              onChange={(e) => setQuickCalendarEvent(e.target.value)}
+              placeholder="Adicionar evento rápido nessa data"
+              style={{ flex: 1 }}
+            />
+            <button className="btn-primary" onClick={addEventoFromCalendar}>
+              Adicionar
+            </button>
+          </div>
           <div style={{ marginTop: 12 }}>
             <h3 className="card-title">Eventos da Lista</h3>
             {eventosDoDiaLista.length === 0 && <p className="card-sub">Nenhum evento da lista nesta data.</p>}
