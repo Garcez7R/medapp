@@ -206,7 +206,7 @@ export function MedicationsPage() {
                 </div>
                 <div className="row">
                   <button
-                    className="btn-soft"
+                    className={entry.taken ? 'btn-dose-undo' : 'btn-dose-take'}
                     onClick={() => {
                       const med = medications.find((item) => item.id === entry.medicationId);
                       if (!med) return;
@@ -217,16 +217,16 @@ export function MedicationsPage() {
                   </button>
                   {!entry.taken && !entry.skipped && (
                     <>
-                      <button className="btn-soft" onClick={() => actionSnooze(entry.key)}>
+                      <button className="btn-dose-snooze" onClick={() => actionSnooze(entry.key)}>
                         Adiar 10m
                       </button>
-                      <button className="btn-danger" onClick={() => actionSkip(entry.key)}>
+                      <button className="btn-dose-skip" onClick={() => actionSkip(entry.key)}>
                         Pular
                       </button>
                     </>
                   )}
                   {entry.skipped && (
-                    <button className="btn-soft" onClick={() => actionUndoSkip(entry.key)}>
+                    <button className="btn-dose-undo" onClick={() => actionUndoSkip(entry.key)}>
                       Desfazer pulo
                     </button>
                   )}
@@ -303,7 +303,7 @@ export function MedicationsPage() {
                   return (
                     <div key={`${doseMedication.id}-${index}`} className={`dose-row ${isTaken ? 'taken' : 'pending'}`}>
                       <span>{doseStr}</span>
-                      <button className="btn-soft" onClick={() => toggleDose(doseMedication, dose)}>
+                      <button className={isTaken ? 'btn-dose-undo' : 'btn-dose-take'} onClick={() => toggleDose(doseMedication, dose)}>
                         {isTaken ? '✔' : '○'}
                       </button>
                     </div>

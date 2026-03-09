@@ -319,6 +319,7 @@ function NotificationsCenterPage() {
 }
 
 function ProfilePage() {
+  const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim();
   const [profile, setProfile] = useState<ProfileData>(() =>
     readJson<ProfileData>('medapp.profile', {
       nome: '',
@@ -331,9 +332,6 @@ function ProfilePage() {
   );
   const [auth, setAuth] = useState(() => loadAuth());
   const [password, setPassword] = useState('');
-  const [googleClientId, setGoogleClientId] = useState(
-    () => localStorage.getItem('medapp.google.clientId') ?? ''
-  );
   const [googleReady, setGoogleReady] = useState(false);
   const [settings, setSettingsState] = useState(() => loadSettings());
   const [googleConfigured, setGoogleConfigured] = useState(false);
@@ -447,12 +445,7 @@ function ProfilePage() {
   }
 
   function startGoogleSignIn() {
-    if (!googleClientId.trim()) {
-      window.alert('Informe o Google Client ID para habilitar login com Google.');
-      return;
-    }
-
-    localStorage.setItem('medapp.google.clientId', googleClientId.trim());
+    if (!googleClientId) return;
 
     if (!window.google || !googleConfigured) {
       window.alert('SDK do Google ainda não carregou. Tente novamente em alguns segundos.');
@@ -544,30 +537,38 @@ function ProfilePage() {
             <button className="btn-primary" onClick={signIn}>
               Entrar
             </button>
-            <label>
-              Google Client ID
-              <input
-                type="text"
-                value={googleClientId}
-                onChange={(e) => setGoogleClientId(e.target.value)}
-                placeholder="Cole aqui o Client ID do Google OAuth"
-              />
-            </label>
-            <button
-              className="btn-soft"
-              onClick={() => {
-                setGoogleRenderNonce((current) => current + 1);
-                startGoogleSignIn();
-              }}
-              disabled={!googleReady}
-            >
-              {googleReady ? 'Entrar com Google (escolher conta)' : 'Carregando Google...'}
-            </button>
-            <div id="medapp-google-login-button" style={{ minHeight: 48 }} />
-            {googleBusy && <p className="card-sub">Abrindo seletor de contas Google...</p>}
-            {googleError && <p className="card-sub">{googleError}</p>}
           </>
         )}
+
+        <div className="account-google-block">
+          <p className="card-sub" style={{ marginTop: 0 }}>
+            Conta Google do aparelho
+          </p>
+          <p className="card-sub" style={{ marginTop: 0 }}>
+            Selecione ou troque a conta Google já conectada no dispositivo. Não é necessário preencher ID manualmente.
+          </p>
+          {googleClientId ? (
+            <>
+              <button
+                className="btn-soft"
+                onClick={() => {
+                  setGoogleRenderNonce((current) => current + 1);
+                  startGoogleSignIn();
+                }}
+                disabled={!googleReady}
+              >
+                {googleReady ? 'Selecionar conta Google' : 'Carregando Google...'}
+              </button>
+              <div id="medapp-google-login-button" style={{ minHeight: 48 }} />
+              {googleBusy && <p className="card-sub">Abrindo seletor de contas Google...</p>}
+              {googleError && <p className="card-sub">{googleError}</p>}
+            </>
+          ) : (
+            <p className="card-sub">
+              Defina <code>VITE_GOOGLE_CLIENT_ID</code> no ambiente para habilitar o seletor de contas.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="card form-grid" style={{ marginTop: 12 }}>
