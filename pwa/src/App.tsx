@@ -2,25 +2,11 @@ import { useMemo, useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { SideMenu } from './components/SideMenu';
 import { type ActivePage, type MainTab } from './nav';
+import { DrawerPageRouter } from './pages/DrawerPages';
 import { AboutPage } from './pages/AboutPage';
 import { AgendaPage } from './pages/AgendaPage';
 import { AgendaUnificadaPage } from './pages/AgendaUnificadaPage';
 import { MedicationsPage } from './pages/MedicationsPage';
-import { PlaceholderPage } from './pages/PlaceholderPage';
-
-const drawerTitles: Record<Exclude<ActivePage, MainTab>, string> = {
-  agenda_medica: 'Agenda Médica',
-  vacinas: 'Vacinas',
-  diario: 'Diário de Saúde',
-  receitas: 'Receitas Médicas',
-  relatorios: 'Relatórios',
-  central_notificacoes: 'Central de Notificações',
-  perfil: 'Perfil e Preferências',
-  calendario: 'Calendário da Saúde',
-  historico: 'Histórico de Atividades',
-  privacidade: 'Privacidade e Segurança',
-  assistente: 'Assistente de Saúde'
-};
 
 export default function App() {
   const [tab, setTab] = useState<MainTab>('medications');
@@ -32,7 +18,7 @@ export default function App() {
     if (activePage === 'agenda') return <AgendaUnificadaPage />;
     if (activePage === 'about') return <AboutPage />;
     if (activePage === 'agenda_medica') return <AgendaPage />;
-    return <PlaceholderPage title={drawerTitles[activePage]} />;
+    return <DrawerPageRouter pageKey={activePage} />;
   }, [activePage]);
 
   function handleTabChange(next: MainTab) {

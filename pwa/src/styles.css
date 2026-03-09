@@ -285,3 +285,40 @@ select {
   text-align: center;
   margin-top: 40px;
 }
+
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  margin-top: 4px;
+  resize: vertical;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+@media (max-width: 560px) {
+  .content {
+    padding: 12px;
+    padding-bottom: 84px;
+  }
+
+  .card-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .row {
+    width: 100%;
+  }
+
+  .row button {
+    flex: 1;
+  }
+}
