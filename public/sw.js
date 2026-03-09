@@ -1,4 +1,4 @@
-const CACHE = 'medapp-pwa-v1';
+const CACHE = 'medapp-pwa-v2';
 const ASSETS = ['/', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
