@@ -1,0 +1,30 @@
+import type { AppTab } from '../types';
+
+interface BottomNavProps {
+  currentTab: AppTab;
+  onChange: (tab: AppTab) => void;
+}
+
+const items: Array<{ tab: AppTab; label: string; icon: string }> = [
+  { tab: 'medications', label: 'Medicamentos', icon: '💊' },
+  { tab: 'exams', label: 'Exames', icon: '📋' },
+  { tab: 'health', label: 'Saúde', icon: '❤️' },
+  { tab: 'about', label: 'Sobre', icon: 'ℹ️' }
+];
+
+export function BottomNav({ currentTab, onChange }: BottomNavProps) {
+  return (
+    <nav className="bottom-nav" aria-label="Navegação principal">
+      {items.map((item) => (
+        <button
+          key={item.tab}
+          className={`nav-btn ${currentTab === item.tab ? 'active' : ''}`}
+          onClick={() => onChange(item.tab)}
+        >
+          <div>{item.icon}</div>
+          <div>{item.label}</div>
+        </button>
+      ))}
+    </nav>
+  );
+}
