@@ -576,46 +576,6 @@ function PrivacyPage() {
   );
 }
 
-function AssistantPage() {
-  const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('Pergunte algo sobre sua rotina de saúde.');
-
-  function ask() {
-    const q = question.trim().toLowerCase();
-    if (!q) return;
-
-    const meds = loadMedications();
-    const agenda = loadAgendaItems();
-
-    if (q.includes('medic')) {
-      setAnswer(`Você tem ${meds.length} medicações cadastradas.`);
-    } else if (q.includes('agenda') || q.includes('consulta')) {
-      setAnswer(`Você tem ${agenda.length} compromissos cadastrados na agenda médica.`);
-    } else if (q.includes('dica') || q.includes('melhor')) {
-      setAnswer('Mantenha horários consistentes, use lembretes e revise sua agenda semanalmente.');
-    } else {
-      setAnswer('Posso ajudar com medicações, agenda, lembretes e organização da rotina.');
-    }
-
-    trackEvent('assistant_question', `Pergunta ao assistente: ${question.trim()}`);
-  }
-
-  return (
-    <div>
-      <h2 className="page-title">Assistente de Saúde</h2>
-      <div className="card form-grid">
-        <label>
-          Sua pergunta
-          <input type="text" value={question} onChange={(e) => setQuestion(e.target.value)} />
-        </label>
-        <button className="btn-primary" onClick={ask}>
-          Perguntar
-        </button>
-        <p className="card-sub">{answer}</p>
-      </div>
-    </div>
-  );
-}
 
 export function DrawerPageRouter({ pageKey }: { pageKey: DrawerPageKey }) {
   if (pageKey === 'vacinas') {
@@ -671,7 +631,6 @@ export function DrawerPageRouter({ pageKey }: { pageKey: DrawerPageKey }) {
   if (pageKey === 'calendario') return <CalendarPage />;
   if (pageKey === 'historico') return <ActivityLogPage />;
   if (pageKey === 'privacidade') return <PrivacyPage />;
-  if (pageKey === 'assistente') return <AssistantPage />;
 
   return <div className="empty">Página não encontrada.</div>;
 }

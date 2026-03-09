@@ -10,8 +10,7 @@ export type DrawerPageKey =
   | 'perfil'
   | 'calendario'
   | 'historico'
-  | 'privacidade'
-  | 'assistente';
+  | 'privacidade';
 
 export type ActivePage = MainTab | DrawerPageKey;
 
@@ -25,6 +24,5 @@ export const drawerItems: Array<{ key: DrawerPageKey; label: string; icon: strin
   { key: 'perfil', label: 'Perfil e Preferências', icon: '👤' },
   { key: 'calendario', label: 'Calendário da Saúde', icon: '🗓️' },
   { key: 'historico', label: 'Histórico de Atividades', icon: '🕘' },
-  { key: 'privacidade', label: 'Privacidade e Segurança', icon: '🔒' },
-  { key: 'assistente', label: 'Assistente de Saúde', icon: '🤖' }
+  { key: 'privacidade', label: 'Privacidade e Segurança', icon: '🔒' }
 ];
