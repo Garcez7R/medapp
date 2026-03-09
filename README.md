@@ -98,3 +98,13 @@ npx wrangler d1 execute medapp-db --file=d1/schema.sql
 - `Perfil e Preferências` → `Sincronização em nuvem (D1)`:
   - `Enviar dados para nuvem`
   - `Baixar dados da nuvem`
+
+## Vínculos de cuidado (parente, responsável, cuidador)
+
+- O paciente pode gerar convites com papel:
+  - `parente`: leitura
+  - `responsavel`: leitura e edição
+  - `cuidador`: leitura e edição
+- O convidado aceita o código no próprio app.
+- O paciente pode revogar vínculos a qualquer momento.
+- A sincronização permite escolher "minha conta" ou um paciente vinculado.

@@ -35,6 +35,17 @@ type PrivacyData = {
   cloudBackup: boolean;
 };
 
+type CareLink = {
+  id: string;
+  patient_email: string;
+  caregiver_email: string | null;
+  role: 'parente' | 'responsavel' | 'cuidador';
+  status: 'pending' | 'accepted' | 'revoked';
+  invite_code: string;
+  created_at: string;
+  accepted_at?: string | null;
+};
+
 type GoogleCredentialPayload = {
   email?: string;
   name?: string;
@@ -356,6 +367,13 @@ function ProfilePage() {
   const [googleRenderNonce, setGoogleRenderNonce] = useState(0);
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
+  const [careLinksBusy, setCareLinksBusy] = useState(false);
+  const [careLinksStatus, setCareLinksStatus] = useState('');
+  const [inviteRole, setInviteRole] = useState<'parente' | 'responsavel' | 'cuidador'>('cuidador');
+  const [inviteCodeInput, setInviteCodeInput] = useState('');
+  const [linksAsPatient, setLinksAsPatient] = useState<CareLink[]>([]);
+  const [linksAsCaregiver, setLinksAsCaregiver] = useState<CareLink[]>([]);
+  const [selectedPatientEmail, setSelectedPatientEmail] = useState('');
 
   useEffect(() => {
     if (window.google) {
@@ -424,6 +442,21 @@ function ProfilePage() {
     setGoogleConfigured(true);
   }, [googleReady, googleClientId, googleRenderNonce]);
 
+  useEffect(() => {
+    if (auth?.provider !== 'google' || !auth.email) {
+      setLinksAsPatient([]);
+      setLinksAsCaregiver([]);
+      setSelectedPatientEmail('');
+      return;
+    }
+    setSelectedPatientEmail(auth.email);
+  }, [auth?.email, auth?.provider]);
+
+  useEffect(() => {
+    if (auth?.provider !== 'google' || !auth.email) return;
+    void refreshCareLinks();
+  }, [auth?.email, auth?.provider]);
+
   function save() {
     writeJson('medapp.profile', profile);
     window.alert('Perfil salvo com sucesso.');
@@ -475,9 +508,170 @@ function ProfilePage() {
     window.google.accounts.id.prompt();
   }
 
+  function getSelectedRoleForSync() {
+    if (!auth?.email || !selectedPatientEmail || selectedPatientEmail === auth.email) {
+      return 'paciente';
+    }
+    const link = linksAsCaregiver.find((item) => item.patient_email === selectedPatientEmail);
+    return link?.role || 'parente';
+  }
+
+  async function refreshCareLinks() {
+    if (!auth?.email || auth.provider !== 'google') {
+      setCareLinksStatus('Faça login com Google para gerenciar vínculos.');
+      return;
+    }
+    try {
+      setCareLinksBusy(true);
+      setCareLinksStatus('Atualizando vínculos...');
+      const params = new URLSearchParams({
+        email: auth.email,
+        provider: 'google'
+      });
+      const response = await fetch(`/api/care-links?${params.toString()}`);
+      const result = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        asPatient?: CareLink[];
+        asCaregiver?: CareLink[];
+      };
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || 'Falha ao carregar vínculos.');
+      }
+      const patientLinks = Array.isArray(result.asPatient) ? result.asPatient : [];
+      const caregiverLinks = Array.isArray(result.asCaregiver) ? result.asCaregiver : [];
+      setLinksAsPatient(patientLinks);
+      setLinksAsCaregiver(caregiverLinks);
+      setCareLinksStatus('Vínculos atualizados.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao carregar vínculos.';
+      setCareLinksStatus(message);
+    } finally {
+      setCareLinksBusy(false);
+    }
+  }
+
+  async function createInvite() {
+    if (!auth?.email || auth.provider !== 'google') {
+      setCareLinksStatus('Faça login com Google para criar convite.');
+      return;
+    }
+    try {
+      setCareLinksBusy(true);
+      setCareLinksStatus('Gerando convite...');
+      const response = await fetch('/api/care-links', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          email: auth.email,
+          provider: 'google',
+          role: inviteRole
+        })
+      });
+      const result = (await response.json()) as { ok?: boolean; error?: string; invite?: CareLink };
+      if (!response.ok || !result.ok || !result.invite) {
+        throw new Error(result.error || 'Falha ao criar convite.');
+      }
+      setLinksAsPatient((prev) => [result.invite!, ...prev]);
+      setCareLinksStatus(`Convite criado. Código: ${result.invite.invite_code}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao criar convite.';
+      setCareLinksStatus(message);
+    } finally {
+      setCareLinksBusy(false);
+    }
+  }
+
+  async function acceptInvite() {
+    if (!auth?.email || auth.provider !== 'google') {
+      setCareLinksStatus('Faça login com Google para aceitar convite.');
+      return;
+    }
+    const code = inviteCodeInput.trim().toUpperCase();
+    if (!code) {
+      setCareLinksStatus('Informe o código de convite.');
+      return;
+    }
+    try {
+      setCareLinksBusy(true);
+      setCareLinksStatus('Aceitando convite...');
+      const response = await fetch('/api/care-links', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'accept',
+          email: auth.email,
+          provider: 'google',
+          inviteCode: code
+        })
+      });
+      const result = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        asPatient?: CareLink[];
+        asCaregiver?: CareLink[];
+      };
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || 'Falha ao aceitar convite.');
+      }
+      setInviteCodeInput('');
+      setLinksAsPatient(Array.isArray(result.asPatient) ? result.asPatient : []);
+      setLinksAsCaregiver(Array.isArray(result.asCaregiver) ? result.asCaregiver : []);
+      setCareLinksStatus('Convite aceito com sucesso.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao aceitar convite.';
+      setCareLinksStatus(message);
+    } finally {
+      setCareLinksBusy(false);
+    }
+  }
+
+  async function revokeLink(linkId: string) {
+    if (!auth?.email || auth.provider !== 'google') {
+      setCareLinksStatus('Faça login com Google para revogar vínculo.');
+      return;
+    }
+    try {
+      setCareLinksBusy(true);
+      setCareLinksStatus('Revogando vínculo...');
+      const response = await fetch('/api/care-links', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'revoke',
+          email: auth.email,
+          provider: 'google',
+          linkId
+        })
+      });
+      const result = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        asPatient?: CareLink[];
+      };
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || 'Falha ao revogar vínculo.');
+      }
+      setLinksAsPatient(Array.isArray(result.asPatient) ? result.asPatient : []);
+      setCareLinksStatus('Vínculo revogado.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao revogar vínculo.';
+      setCareLinksStatus(message);
+    } finally {
+      setCareLinksBusy(false);
+    }
+  }
+
   async function pushToCloudSync() {
     if (!auth?.email || auth.provider !== 'google') {
       setSyncStatus('Para sincronizar, faça login com conta Google.');
+      return;
+    }
+    const targetPatientEmail = selectedPatientEmail || auth.email;
+    const accessRole = getSelectedRoleForSync();
+    if (targetPatientEmail !== auth.email && accessRole === 'parente') {
+      setSyncStatus('Perfil parente possui acesso somente leitura para este paciente.');
       return;
     }
 
@@ -493,6 +687,7 @@ function ProfilePage() {
         body: JSON.stringify({
           email: auth.email,
           provider: 'google',
+          patientEmail: targetPatientEmail,
           payload
         })
       });
@@ -514,13 +709,15 @@ function ProfilePage() {
       setSyncStatus('Para sincronizar, faça login com conta Google.');
       return;
     }
+    const targetPatientEmail = selectedPatientEmail || auth.email;
 
     try {
       setSyncBusy(true);
       setSyncStatus('Buscando dados sincronizados...');
       const params = new URLSearchParams({
         email: auth.email,
-        provider: 'google'
+        provider: 'google',
+        patientEmail: targetPatientEmail
       });
       const response = await fetch(`/api/sync?${params.toString()}`);
       const result = (await response.json()) as {
@@ -686,11 +883,120 @@ function ProfilePage() {
       </div>
 
       <div className="card form-grid" style={{ marginTop: 12 }}>
+        <h3 className="card-title">Vínculos: parente, responsável e cuidador</h3>
+        {auth?.provider === 'google' ? (
+          <p className="card-sub">Conta Google ativa: {auth.email}</p>
+        ) : (
+          <p className="card-sub">Faça login com Google para criar/aceitar vínculos.</p>
+        )}
+
+        <label>
+          Papel do convite
+          <select
+            value={inviteRole}
+            onChange={(e) =>
+              setInviteRole((e.target.value as 'parente' | 'responsavel' | 'cuidador') || 'cuidador')
+            }
+          >
+            <option value="parente">Parente (leitura)</option>
+            <option value="responsavel">Responsável (leitura e edição)</option>
+            <option value="cuidador">Cuidador (leitura e edição)</option>
+          </select>
+        </label>
+        <div className="row">
+          <button
+            className="btn-primary"
+            onClick={() => void createInvite()}
+            disabled={careLinksBusy || auth?.provider !== 'google'}
+          >
+            Gerar convite
+          </button>
+          <button
+            className="btn-soft"
+            onClick={() => void refreshCareLinks()}
+            disabled={careLinksBusy || auth?.provider !== 'google'}
+          >
+            Atualizar vínculos
+          </button>
+        </div>
+
+        <label>
+          Código de convite recebido
+          <input
+            type="text"
+            value={inviteCodeInput}
+            onChange={(e) => setInviteCodeInput(e.target.value.toUpperCase())}
+            placeholder="Ex: A1B2C3D4"
+          />
+        </label>
+        <button
+          className="btn-soft"
+          onClick={() => void acceptInvite()}
+          disabled={careLinksBusy || auth?.provider !== 'google'}
+        >
+          Aceitar convite
+        </button>
+
+        <div className="med-list" style={{ marginTop: 8 }}>
+          <article className="card">
+            <h4 className="card-title">Convidados por você</h4>
+            {linksAsPatient.length === 0 ? (
+              <p className="card-sub">Nenhum vínculo criado.</p>
+            ) : (
+              linksAsPatient.map((link) => (
+                <div key={link.id} className="card-sub" style={{ marginBottom: 8 }}>
+                  {link.role} • {link.status} • Código: <strong>{link.invite_code}</strong>
+                  {link.caregiver_email ? ` • ${link.caregiver_email}` : ' • aguardando aceite'}
+                  {link.status !== 'revoked' && (
+                    <div className="row" style={{ marginTop: 6 }}>
+                      <button className="btn-danger" onClick={() => void revokeLink(link.id)}>
+                        Revogar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </article>
+
+          <article className="card">
+            <h4 className="card-title">Pacientes vinculados a você</h4>
+            {linksAsCaregiver.length === 0 ? (
+              <p className="card-sub">Nenhum vínculo aceito.</p>
+            ) : (
+              linksAsCaregiver.map((link) => (
+                <p key={link.id} className="card-sub">
+                  {link.patient_email} • papel: {link.role}
+                </p>
+              ))
+            )}
+          </article>
+        </div>
+        {careLinksStatus && <p className="card-sub">{careLinksStatus}</p>}
+      </div>
+
+      <div className="card form-grid" style={{ marginTop: 12 }}>
         <h3 className="card-title">Sincronização em nuvem (D1)</h3>
         {auth?.provider === 'google' ? (
           <p className="card-sub">Conta ativa para sincronização: {auth.email}</p>
         ) : (
           <p className="card-sub">Faça login com Google para ativar sincronização entre dispositivos.</p>
+        )}
+        {auth?.provider === 'google' && (
+          <label>
+            Sincronizar dados de
+            <select
+              value={selectedPatientEmail || auth.email}
+              onChange={(e) => setSelectedPatientEmail(e.target.value)}
+            >
+              <option value={auth.email}>Minha conta ({auth.email})</option>
+              {linksAsCaregiver.map((link) => (
+                <option key={link.id} value={link.patient_email}>
+                  {link.patient_email} ({link.role})
+                </option>
+              ))}
+            </select>
+          </label>
         )}
         <div className="row">
           <button
