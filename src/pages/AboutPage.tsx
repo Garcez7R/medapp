@@ -1,8 +1,44 @@
+import { useEffect, useMemo, useState } from 'react';
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+};
+
+function isStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches;
+}
+
 export function AboutPage() {
+  const [installAvailable, setInstallAvailable] = useState<boolean>(
+    () => Boolean(window.__medappInstallPrompt)
+  );
+  const [status, setStatus] = useState('');
+  const installLabel = useMemo(() => {
+    if (isStandaloneMode()) return 'App já instalado';
+    if (installAvailable) return 'Instalar app';
+    return 'Instalação indisponível no momento';
+  }, [installAvailable]);
+
+  useEffect(() => {
+    const onInstallAvailable = () => setInstallAvailable(true);
+    const onInstalled = () => {
+      setInstallAvailable(false);
+      setStatus('MedApp instalado com sucesso.');
+    };
+
+    window.addEventListener('medapp-install-available', onInstallAvailable);
+    window.addEventListener('medapp-installed', onInstalled);
+    return () => {
+      window.removeEventListener('medapp-install-available', onInstallAvailable);
+      window.removeEventListener('medapp-installed', onInstalled);
+    };
+  }, []);
+
   async function ensureNotificationPermission(): Promise<typeof Notification | null> {
     const NotificationApi = (window as unknown as { Notification?: typeof Notification }).Notification;
     if (!NotificationApi) {
-      globalThis.alert('Este navegador não suporta notificações.');
+      setStatus('Este navegador não suporta notificações.');
       return null;
     }
 
@@ -12,32 +48,71 @@ export function AboutPage() {
         : await NotificationApi.requestPermission();
 
     if (permission !== 'granted') {
-      globalThis.alert('Permissão de notificação negada.');
+      setStatus('Permissão de notificação negada. Ative nas configurações do navegador.');
       return null;
     }
 
     return NotificationApi;
   }
 
-  async function testarNotificacaoInstantanea() {
+  async function showNotification(title: string, body: string) {
     const api = await ensureNotificationPermission();
     if (!api) return;
-    new api('Notificação Instantânea', {
-      body: 'Esta é uma notificação enviada agora!'
-    });
+
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.showNotification(title, { body, tag: 'medapp-about' });
+          return;
+        }
+      }
+    } catch {
+      // fallback below
+    }
+
+    new api(title, { body });
+  }
+
+  async function testarNotificacaoInstantanea() {
+    setStatus('Enviando notificação instantânea...');
+    await showNotification('Notificação Instantânea', 'Esta é uma notificação enviada agora!');
+    setStatus('Notificação instantânea disparada.');
   }
 
   async function testarNotificacaoAgendada() {
-    const api = await ensureNotificationPermission();
-    if (!api) return;
+    const permission = await ensureNotificationPermission();
+    if (!permission) return;
 
+    setStatus('Notificação agendada para 10 segundos.');
     setTimeout(() => {
-      new api('Notificação Agendada', {
-        body: 'Essa notificação foi agendada para 10 segundos depois.'
-      });
+      void showNotification('Notificação Agendada', 'Essa notificação foi agendada para 10 segundos depois.');
     }, 10_000);
+  }
 
-    globalThis.alert('Notificação agendada para daqui a 10 segundos.');
+  async function instalarApp() {
+    if (isStandaloneMode()) {
+      setStatus('O MedApp já está instalado neste dispositivo.');
+      return;
+    }
+
+    const promptEvent = window.__medappInstallPrompt as BeforeInstallPromptEvent | undefined;
+    if (!promptEvent) {
+      setStatus(
+        'Prompt de instalação indisponível. Continue usando o app e tente novamente, ou use o menu do navegador para "Adicionar à tela inicial".'
+      );
+      return;
+    }
+
+    await promptEvent.prompt();
+    const choice = await promptEvent.userChoice;
+    window.__medappInstallPrompt = null;
+    setInstallAvailable(false);
+    setStatus(
+      choice.outcome === 'accepted'
+        ? 'Instalação confirmada.'
+        : 'Instalação cancelada pelo usuário.'
+    );
   }
 
   return (
@@ -71,6 +146,15 @@ export function AboutPage() {
           Agendada (10s)
         </button>
       </div>
+      <div className="row" style={{ marginTop: 8 }}>
+        <button className="btn-primary" onClick={instalarApp} disabled={!installAvailable && !isStandaloneMode()}>
+          {installLabel}
+        </button>
+      </div>
+      {status && <p className="card-sub">{status}</p>}
+      <p className="card-sub">
+        Em alguns celulares, o navegador só permite notificação após instalação do app.
+      </p>
 
       <p className="card-sub">Versão atual: 0.1.0-alpha</p>
     </div>
