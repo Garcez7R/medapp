@@ -19,6 +19,10 @@ export interface MedicalAgendaItem {
   local: string;
   observacoes: string;
   lembrete: string;
+  recorrenciaAtiva?: boolean;
+  recorrenciaDias?: number;
+  recorrenciaTotal?: number;
+  recorrenciaIndice?: number;
 }
 
 export interface AppSettings {

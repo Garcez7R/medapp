@@ -17,6 +17,13 @@ const defaultItem = (): MedicalAgendaItem => ({
 
 const reminders = ['Sem lembrete', '30 min antes', '1 hora antes', '3 horas antes', '1 dia antes'];
 
+function addDaysToIsoDate(dateIso: string, days: number): string {
+  const [year, month, day] = dateIso.split('-').map((part) => Number(part) || 0);
+  const base = new Date(year, Math.max(0, month - 1), day);
+  base.setDate(base.getDate() + days);
+  return base.toISOString().slice(0, 10);
+}
+
 export function AgendaPage() {
   const [items, setItems] = useState<MedicalAgendaItem[]>(() => loadAgendaItems());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -28,11 +35,15 @@ export function AgendaPage() {
 
   const editingItem = useMemo(() => items.find((item) => item.id === editingId), [editingId, items]);
 
-  function saveItem(newItem: MedicalAgendaItem) {
+  function saveItem(newItems: MedicalAgendaItem[]) {
     setItems((prev) => {
-      const idx = prev.findIndex((item) => item.id === newItem.id);
-      if (idx === -1) return [...prev, newItem];
-      return prev.map((item) => (item.id === newItem.id ? newItem : item));
+      if (newItems.length === 1) {
+        const [newItem] = newItems;
+        const idx = prev.findIndex((item) => item.id === newItem.id);
+        if (idx === -1) return [...prev, newItem];
+        return prev.map((item) => (item.id === newItem.id ? newItem : item));
+      }
+      return [...prev, ...newItems];
     });
     setCreating(false);
     setEditingId(null);
@@ -67,6 +78,15 @@ export function AgendaPage() {
               Obs: {item.observacoes || '-'}
               <br />
               Lembrete: {item.lembrete}
+              {item.recorrenciaAtiva && item.recorrenciaDias ? (
+                <>
+                  <br />
+                  Recorrência: a cada {item.recorrenciaDias} dia(s)
+                  {item.recorrenciaTotal && item.recorrenciaIndice
+                    ? ` (${item.recorrenciaIndice}/${item.recorrenciaTotal})`
+                    : ''}
+                </>
+              ) : null}
             </p>
             <div className="row">
               <button className="btn-soft" onClick={() => setEditingId(item.id)}>
@@ -99,11 +119,14 @@ export function AgendaPage() {
 interface AgendaItemModalProps {
   initialItem?: MedicalAgendaItem;
   onClose: () => void;
-  onSave: (item: MedicalAgendaItem) => void;
+  onSave: (items: MedicalAgendaItem[]) => void;
 }
 
 function AgendaItemModal({ initialItem, onClose, onSave }: AgendaItemModalProps) {
   const [form, setForm] = useState<MedicalAgendaItem>(initialItem ?? defaultItem());
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [repeatEveryDays, setRepeatEveryDays] = useState(14);
+  const [repeatOccurrences, setRepeatOccurrences] = useState(6);
 
   function setField<K extends keyof MedicalAgendaItem>(field: K, value: MedicalAgendaItem[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -114,7 +137,29 @@ function AgendaItemModal({ initialItem, onClose, onSave }: AgendaItemModalProps)
       window.alert('Por favor, preencha os campos obrigatórios.');
       return;
     }
-    onSave({ ...form, compromisso: form.compromisso.trim() });
+
+    const baseItem: MedicalAgendaItem = {
+      ...form,
+      compromisso: form.compromisso.trim()
+    };
+
+    if (!initialItem && repeatEnabled) {
+      const everyDays = Math.max(1, Math.floor(repeatEveryDays));
+      const occurrences = Math.max(1, Math.floor(repeatOccurrences));
+      const nextItems: MedicalAgendaItem[] = Array.from({ length: occurrences }, (_, index) => ({
+        ...baseItem,
+        id: createId(),
+        data: addDaysToIsoDate(baseItem.data, index * everyDays),
+        recorrenciaAtiva: true,
+        recorrenciaDias: everyDays,
+        recorrenciaTotal: occurrences,
+        recorrenciaIndice: index + 1
+      }));
+      onSave(nextItems);
+      return;
+    }
+
+    onSave([{ ...baseItem, recorrenciaAtiva: false }]);
   }
 
   return (
@@ -189,6 +234,47 @@ function AgendaItemModal({ initialItem, onClose, onSave }: AgendaItemModalProps)
               ))}
             </select>
           </label>
+
+          {!initialItem && (
+            <>
+              <label>
+                Recorrência
+                <select
+                  value={repeatEnabled ? 'dias' : 'nenhuma'}
+                  onChange={(e) => setRepeatEnabled(e.target.value === 'dias')}
+                >
+                  <option value="nenhuma">Sem recorrência</option>
+                  <option value="dias">A cada X dias</option>
+                </select>
+              </label>
+
+              {repeatEnabled && (
+                <>
+                  <label>
+                    Repetir a cada quantos dias
+                    <input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={repeatEveryDays}
+                      onChange={(e) => setRepeatEveryDays(Number(e.target.value) || 1)}
+                    />
+                  </label>
+
+                  <label>
+                    Quantidade de ocorrências
+                    <input
+                      type="number"
+                      min={2}
+                      max={60}
+                      value={repeatOccurrences}
+                      onChange={(e) => setRepeatOccurrences(Number(e.target.value) || 2)}
+                    />
+                  </label>
+                </>
+              )}
+            </>
+          )}
         </div>
 
         <div className="row" style={{ marginTop: 14 }}>
