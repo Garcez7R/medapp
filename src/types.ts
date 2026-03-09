@@ -31,6 +31,9 @@ export interface AppSettings {
 export interface AuthState {
   email: string;
   signedInAt: string;
+  provider?: 'local' | 'google';
+  name?: string;
+  picture?: string;
 }
 
 export interface AnalyticsEvent {

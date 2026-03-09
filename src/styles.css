@@ -77,6 +77,15 @@ body {
   padding: 4px 10px;
 }
 
+.display-btn {
+  margin-left: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+
 .edge-swipe-zone {
   position: fixed;
   left: 0;

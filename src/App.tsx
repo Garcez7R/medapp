@@ -14,6 +14,7 @@ export default function App() {
   const [activePage, setActivePage] = useState<ActivePage>('medications');
   const [menuOpen, setMenuOpen] = useState(false);
   const [settings, setSettings] = useState(() => loadSettings());
+  const [displayPrefsOpen, setDisplayPrefsOpen] = useState(false);
   const [onboardingName, setOnboardingName] = useState('');
   const swipeStartRef = useRef<{ x: number; y: number; fromOpenMenu: boolean } | null>(null);
 
@@ -125,6 +126,9 @@ export default function App() {
             </button>
           ))}
         </nav>
+        <button className="display-btn" onClick={() => setDisplayPrefsOpen(true)} aria-label="Preferências de tela">
+          Aa
+        </button>
       </header>
 
       <section className="content">{page}</section>
@@ -185,6 +189,43 @@ export default function App() {
             <div className="row" style={{ marginTop: 14 }}>
               <button className="btn-primary" onClick={finishOnboarding}>
                 Finalizar configuração
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {displayPrefsOpen && (
+        <div className="modal-backdrop" onClick={() => setDisplayPrefsOpen(false)}>
+          <section className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="page-title">Preferências de tela</h2>
+            <div className="form-grid">
+              <label>
+                Tamanho da fonte
+                <select
+                  value={settings.fontScale}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, fontScale: Number(e.target.value) || 1 }))
+                  }
+                >
+                  <option value={0.95}>Compacto</option>
+                  <option value={1}>Padrão</option>
+                  <option value={1.1}>Confortável</option>
+                  <option value={1.2}>Acessível</option>
+                </select>
+              </label>
+              <label className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={settings.highContrast}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, highContrast: e.target.checked }))}
+                />
+                Alto contraste
+              </label>
+            </div>
+            <div className="row" style={{ marginTop: 14 }}>
+              <button className="btn-primary" onClick={() => setDisplayPrefsOpen(false)}>
+                Fechar
               </button>
             </div>
           </section>

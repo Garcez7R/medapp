@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { DrawerPageKey } from '../nav';
 import {
   clearAllMedappData,
@@ -32,6 +32,28 @@ type PrivacyData = {
   cloudBackup: boolean;
 };
 
+type GoogleCredentialPayload = {
+  email?: string;
+  name?: string;
+  picture?: string;
+};
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: { credential?: string }) => void;
+          }) => void;
+          prompt: () => void;
+        };
+      };
+    };
+  }
+}
+
 function readJson<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key);
   if (!raw) return fallback;
@@ -44,6 +66,23 @@ function readJson<T>(key: string, fallback: T): T {
 
 function writeJson<T>(key: string, value: T): void {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function parseJwtPayload(token: string): GoogleCredentialPayload | null {
+  try {
+    const payloadBase64 = token.split('.')[1];
+    if (!payloadBase64) return null;
+    const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = decodeURIComponent(
+      atob(normalized)
+        .split('')
+        .map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`)
+        .join('')
+    );
+    return JSON.parse(decoded) as GoogleCredentialPayload;
+  } catch {
+    return null;
+  }
 }
 
 function useCrudState(storageKey: string) {
@@ -279,7 +318,25 @@ function ProfilePage() {
   );
   const [auth, setAuth] = useState(() => loadAuth());
   const [password, setPassword] = useState('');
+  const [googleClientId, setGoogleClientId] = useState(
+    () => localStorage.getItem('medapp.google.clientId') ?? ''
+  );
+  const [googleReady, setGoogleReady] = useState(false);
   const [settings, setSettingsState] = useState(() => loadSettings());
+
+  useEffect(() => {
+    if (window.google) {
+      setGoogleReady(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setGoogleReady(true);
+    document.head.appendChild(script);
+  }, []);
 
   function save() {
     writeJson('medapp.profile', profile);
@@ -296,7 +353,11 @@ function ProfilePage() {
       window.alert('Informe e-mail e senha para login opcional.');
       return;
     }
-    const next = { email: profile.email.trim(), signedInAt: new Date().toISOString() };
+    const next = {
+      email: profile.email.trim(),
+      signedInAt: new Date().toISOString(),
+      provider: 'local' as const
+    };
     setAuth(next);
     saveAuth(next);
     setPassword('');
@@ -313,7 +374,46 @@ function ProfilePage() {
     setSettingsState(next);
     saveSettings(next);
     trackEvent('ui_settings', 'Preferências de acessibilidade atualizadas');
-    window.location.reload();
+  }
+
+  function startGoogleSignIn() {
+    if (!googleClientId.trim()) {
+      window.alert('Informe o Google Client ID para habilitar login com Google.');
+      return;
+    }
+
+    localStorage.setItem('medapp.google.clientId', googleClientId.trim());
+
+    if (!window.google) {
+      window.alert('SDK do Google ainda não carregou. Tente novamente em alguns segundos.');
+      return;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: googleClientId.trim(),
+      callback: ({ credential }) => {
+        if (!credential) {
+          window.alert('Não foi possível concluir o login com Google.');
+          return;
+        }
+        const payload = parseJwtPayload(credential);
+        if (!payload?.email) {
+          window.alert('Resposta do Google inválida.');
+          return;
+        }
+        const next = {
+          email: payload.email,
+          signedInAt: new Date().toISOString(),
+          provider: 'google' as const,
+          name: payload.name,
+          picture: payload.picture
+        };
+        setAuth(next);
+        saveAuth(next);
+        trackEvent('auth_login_google', `Login com Google: ${next.email}`);
+      }
+    });
+    window.google.accounts.id.prompt();
   }
 
   return (
@@ -370,7 +470,19 @@ function ProfilePage() {
         <h3 className="card-title">Conta (opcional)</h3>
         {auth ? (
           <>
-            <p className="card-sub">Conectado como {auth.email}</p>
+            <p className="card-sub">
+              Conectado como {auth.name ? `${auth.name} (${auth.email})` : auth.email}
+              {auth.provider ? ` • ${auth.provider}` : ''}
+            </p>
+            {auth.picture && (
+              <img
+                src={auth.picture}
+                alt="Avatar do Google"
+                width={48}
+                height={48}
+                style={{ borderRadius: 999, border: '1px solid #cbd5e1' }}
+              />
+            )}
             <button className="btn-danger" onClick={signOut}>
               Sair
             </button>
@@ -383,6 +495,18 @@ function ProfilePage() {
             </label>
             <button className="btn-primary" onClick={signIn}>
               Entrar
+            </button>
+            <label>
+              Google Client ID
+              <input
+                type="text"
+                value={googleClientId}
+                onChange={(e) => setGoogleClientId(e.target.value)}
+                placeholder="Cole aqui o Client ID do Google OAuth"
+              />
+            </label>
+            <button className="btn-soft" onClick={startGoogleSignIn} disabled={!googleReady}>
+              {googleReady ? 'Entrar com Google' : 'Carregando Google...'}
             </button>
           </>
         )}
