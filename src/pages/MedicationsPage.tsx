@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { MedicationFormModal } from '../components/MedicationFormModal';
 import type { Medication } from '../types';
 import {
@@ -270,7 +271,7 @@ export function MedicationsPage() {
       </div>
 
       <button className="fab btn-primary" onClick={() => setIsCreating(true)} aria-label="Adicionar">
-        +
+        <Plus size={24} aria-hidden="true" />
       </button>
 
       {isCreating && (

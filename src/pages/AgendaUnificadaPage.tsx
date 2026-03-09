@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { createId, loadAgendaItems, loadStringArray, saveStringArray } from '../utils';
 
 type AgendaTab = 'lista' | 'calendario' | 'diario';
@@ -142,7 +143,7 @@ export function AgendaUnificadaPage() {
           </div>
 
           {eventos.length === 0 ? (
-            <p className="empty">📋 Nenhum evento registrado.</p>
+            <p className="empty">Nenhum evento registrado.</p>
           ) : (
             <div className="med-list" style={{ marginTop: 12 }}>
               {eventos.map((evento) => (
@@ -200,7 +201,7 @@ export function AgendaUnificadaPage() {
       {tab === 'diario' && (
         <div>
           {notas.length === 0 ? (
-            <p className="empty">📔 Nenhuma nota registrada. Toque em + para adicionar.</p>
+            <p className="empty">Nenhuma nota registrada. Toque em + para adicionar.</p>
           ) : (
             <div className="med-list">
               {notas.map((nota, index) => (
@@ -211,7 +212,7 @@ export function AgendaUnificadaPage() {
             </div>
           )}
           <button className="fab btn-primary" onClick={addNota} aria-label="Adicionar nota">
-            +
+            <Plus size={24} aria-hidden="true" />
           </button>
         </div>
       )}

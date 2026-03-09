@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Menu } from 'lucide-react';
 import { BottomNav } from './components/BottomNav';
 import { SideMenu } from './components/SideMenu';
 import { type ActivePage, type MainTab } from './nav';
@@ -411,7 +412,7 @@ export default function App() {
 
       <header className="app-header">
         <button className="menu-btn" onClick={() => setMenuOpen(true)} aria-label="Abrir menu lateral">
-          ☰
+          <Menu size={20} aria-hidden="true" />
         </button>
         <div className="app-brand-group">
           <span className="app-brand">MedApp</span>

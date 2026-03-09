@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Download } from 'lucide-react';
 import { drawerItems, type ActivePage } from '../nav';
 
 type BeforeInstallPromptEvent = Event & {
@@ -63,12 +64,12 @@ export function SideMenu({ open, activePage, onClose, onSelect }: SideMenuProps)
                 onClose();
               }}
             >
-              <span>{item.icon}</span>
+              <item.icon size={20} aria-hidden="true" />
               <span>{item.label}</span>
             </button>
           ))}
           <button className="side-item" onClick={() => void installFromMenu()} disabled={!installAvailable && !isStandalone}>
-            <span>⬇️</span>
+            <Download size={20} aria-hidden="true" />
             <span>{isStandalone ? 'App já instalado' : 'Instalar app'}</span>
           </button>
         </div>

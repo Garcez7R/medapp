@@ -123,6 +123,9 @@ body {
   color: #fff;
   border-radius: 8px;
   padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .display-btn {
@@ -313,6 +316,12 @@ button:active {
   background: transparent;
   color: #cbd5e1;
   padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 0.82rem;
 }
 
 .nav-btn.active {
@@ -363,8 +372,8 @@ button:active {
   background: #f0fdfa;
 }
 
-.side-item span:first-child {
-  font-size: 1.15rem;
+.side-item svg {
+  flex: 0 0 auto;
 }
 
 .side-item:disabled {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
 import type { MedicalAgendaItem } from '../types';
 import { createId, loadAgendaItems, saveAgendaItems } from '../utils';
 
@@ -108,7 +109,7 @@ export function AgendaPage() {
       </div>
 
       <button className="fab btn-primary" onClick={() => setCreating(true)} aria-label="Adicionar compromisso">
-        +
+        <Plus size={24} aria-hidden="true" />
       </button>
 
       {creating && <AgendaItemModal onClose={() => setCreating(false)} onSave={saveItem} />}

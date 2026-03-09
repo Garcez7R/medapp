@@ -1,3 +1,16 @@
+import type { LucideIcon } from 'lucide-react';
+import {
+  BarChart3,
+  BellRing,
+  CalendarDays,
+  FileText,
+  History,
+  ShieldCheck,
+  Syringe,
+  UserRound,
+  NotebookPen
+} from 'lucide-react';
+
 export type MainTab = 'medications' | 'agenda' | 'about';
 
 export type DrawerPageKey =
@@ -13,14 +26,14 @@ export type DrawerPageKey =
 
 export type ActivePage = MainTab | DrawerPageKey;
 
-export const drawerItems: Array<{ key: DrawerPageKey; label: string; icon: string }> = [
-  { key: 'agenda_medica', label: 'Agenda Médica', icon: '📅' },
-  { key: 'vacinas', label: 'Vacinas', icon: '💉' },
-  { key: 'receitas', label: 'Receitas Médicas', icon: '📄' },
-  { key: 'diario', label: 'Diário de Saúde', icon: '📝' },
-  { key: 'central_notificacoes', label: 'Central de Notificações', icon: '🔔' },
-  { key: 'historico', label: 'Histórico de Atividades', icon: '🕘' },
-  { key: 'relatorios', label: 'Relatórios', icon: '📊' },
-  { key: 'perfil', label: 'Perfil e Preferências', icon: '👤' },
-  { key: 'privacidade', label: 'Privacidade e Segurança', icon: '🔒' }
+export const drawerItems: Array<{ key: DrawerPageKey; label: string; icon: LucideIcon }> = [
+  { key: 'agenda_medica', label: 'Agenda Médica', icon: CalendarDays },
+  { key: 'vacinas', label: 'Vacinas', icon: Syringe },
+  { key: 'receitas', label: 'Receitas Médicas', icon: FileText },
+  { key: 'diario', label: 'Diário de Saúde', icon: NotebookPen },
+  { key: 'central_notificacoes', label: 'Central de Notificações', icon: BellRing },
+  { key: 'historico', label: 'Histórico de Atividades', icon: History },
+  { key: 'relatorios', label: 'Relatórios', icon: BarChart3 },
+  { key: 'perfil', label: 'Perfil e Preferências', icon: UserRound },
+  { key: 'privacidade', label: 'Privacidade e Segurança', icon: ShieldCheck }
 ];
