@@ -36,11 +36,22 @@ body {
 }
 
 .app-header {
-  padding: 16px 20px;
+  padding: 12px 14px;
   background: linear-gradient(135deg, #115e59, #0f766e);
   color: #f8fafc;
   font-weight: 700;
   letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-btn {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 10px;
 }
 
 .content {
@@ -149,6 +160,46 @@ button {
 .nav-btn.active {
   background: #1e293b;
   color: #99f6e4;
+}
+
+.side-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.52);
+  z-index: 40;
+}
+
+.side-menu {
+  width: min(340px, 88vw);
+  background: #fff;
+  height: 100%;
+  border-right: 1px solid var(--border);
+}
+
+.side-header {
+  background: var(--primary);
+  color: #fff;
+  padding: 18px 14px;
+  font-weight: 700;
+}
+
+.side-list {
+  display: grid;
+}
+
+.side-item {
+  background: transparent;
+  border-radius: 0;
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.side-item.active {
+  background: #f0fdfa;
 }
 
 .modal-backdrop {

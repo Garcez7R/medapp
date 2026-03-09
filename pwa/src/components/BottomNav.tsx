@@ -1,11 +1,11 @@
-import type { AppTab } from '../types';
+import type { MainTab } from '../nav';
 
 interface BottomNavProps {
-  currentTab: AppTab;
-  onChange: (tab: AppTab) => void;
+  currentTab: MainTab;
+  onChange: (tab: MainTab) => void;
 }
 
-const items: Array<{ tab: AppTab; label: string; icon: string }> = [
+const items: Array<{ tab: MainTab; label: string; icon: string }> = [
   { tab: 'medications', label: 'Medicamentos', icon: '💊' },
   { tab: 'exams', label: 'Exames', icon: '📋' },
   { tab: 'health', label: 'Saúde', icon: '❤️' },
