@@ -613,9 +613,27 @@ textarea {
     overflow: visible;
   }
 
+  .app-brand-group {
+    position: static;
+    transform: none;
+    margin-left: 6px;
+    max-width: 320px;
+  }
+
+  .app-brand {
+    font-size: 1.1rem;
+  }
+
+  .user-pill {
+    max-width: 170px;
+    font-size: 0.82rem;
+    padding: 6px 10px;
+  }
+
   .desktop-tabs {
     display: flex;
-    margin-right: 12px;
+    margin-left: auto;
+    margin-right: 10px;
   }
 
   .edge-swipe-zone {
