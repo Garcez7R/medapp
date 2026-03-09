@@ -57,6 +57,9 @@ export function AgendaPage() {
   return (
     <div>
       <h2 className="page-title">Agenda Médica</h2>
+      <p className="card-sub" style={{ marginTop: -4 }}>
+        Recorrência disponível no botão +: selecione <strong>A cada X dias</strong>.
+      </p>
 
       {items.length === 0 && <p className="empty">Nenhum compromisso.</p>}
 
@@ -205,36 +208,6 @@ function AgendaItemModal({ initialItem, onClose, onSave }: AgendaItemModalProps)
             <input type="date" value={form.data} onChange={(e) => setField('data', e.target.value)} />
           </label>
 
-          <label>
-            Horário
-            <input type="time" value={form.hora} onChange={(e) => setField('hora', e.target.value)} />
-          </label>
-
-          <label>
-            Local
-            <input type="text" value={form.local} onChange={(e) => setField('local', e.target.value)} />
-          </label>
-
-          <label>
-            Observações
-            <input
-              type="text"
-              value={form.observacoes}
-              onChange={(e) => setField('observacoes', e.target.value)}
-            />
-          </label>
-
-          <label>
-            Lembrete
-            <select value={form.lembrete} onChange={(e) => setField('lembrete', e.target.value)}>
-              {reminders.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-
           {!initialItem && (
             <>
               <label>
@@ -275,6 +248,36 @@ function AgendaItemModal({ initialItem, onClose, onSave }: AgendaItemModalProps)
               )}
             </>
           )}
+
+          <label>
+            Horário
+            <input type="time" value={form.hora} onChange={(e) => setField('hora', e.target.value)} />
+          </label>
+
+          <label>
+            Local
+            <input type="text" value={form.local} onChange={(e) => setField('local', e.target.value)} />
+          </label>
+
+          <label>
+            Observações
+            <input
+              type="text"
+              value={form.observacoes}
+              onChange={(e) => setField('observacoes', e.target.value)}
+            />
+          </label>
+
+          <label>
+            Lembrete
+            <select value={form.lembrete} onChange={(e) => setField('lembrete', e.target.value)}>
+              {reminders.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <div className="row" style={{ marginTop: 14 }}>

@@ -413,7 +413,12 @@ export default function App() {
         <button className="menu-btn" onClick={() => setMenuOpen(true)} aria-label="Abrir menu lateral">
           ☰
         </button>
-        <span className="app-brand">MedApp</span>
+        <div className="app-brand-group">
+          <span className="app-brand">MedApp</span>
+          <span className="user-pill" title={auth?.email || 'Convidado'}>
+            {displayName}
+          </span>
+        </div>
         <nav className="desktop-tabs" aria-label="Navegação principal desktop">
           {mainTabs.map((item) => (
             <button
@@ -426,9 +431,6 @@ export default function App() {
           ))}
         </nav>
         <div className="app-header-right">
-          <span className="user-pill" title={auth?.email || 'Convidado'}>
-            {displayName}
-          </span>
           <button className="display-btn" onClick={() => setDisplayPrefsOpen(true)} aria-label="Preferências de tela">
             Aa
           </button>

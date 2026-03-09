@@ -65,10 +65,17 @@ body {
 }
 
 .app-brand {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.app-brand-group {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .desktop-tabs {
@@ -85,7 +92,7 @@ body {
 }
 
 .user-pill {
-  max-width: 140px;
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -93,8 +100,8 @@ body {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 0.78rem;
+  padding: 7px 12px;
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
@@ -321,7 +328,7 @@ button:active {
 }
 
 .side-menu {
-  width: min(340px, 88vw);
+  width: min(380px, 92vw);
   background: #fff;
   height: 100%;
   border-right: 1px solid var(--border);
@@ -330,7 +337,8 @@ button:active {
 .side-header {
   background: var(--primary);
   color: #fff;
-  padding: 18px 14px;
+  padding: 20px 18px;
+  font-size: 1.1rem;
   font-weight: 700;
 }
 
@@ -342,15 +350,21 @@ button:active {
   background: transparent;
   border-radius: 0;
   text-align: left;
-  padding: 12px 14px;
+  padding: 16px 18px;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
+  width: 100%;
+  font-size: 1.03rem;
 }
 
 .side-item.active {
   background: #f0fdfa;
+}
+
+.side-item span:first-child {
+  font-size: 1.15rem;
 }
 
 .modal-backdrop {
@@ -556,15 +570,15 @@ textarea {
 }
 
 @media (max-width: 560px) {
-  .app-brand {
+  .app-brand-group {
     position: static;
     transform: none;
-    pointer-events: auto;
+    max-width: calc(100vw - 140px);
   }
 
   .user-pill {
-    max-width: 96px;
-    font-size: 0.72rem;
+    max-width: 120px;
+    font-size: 0.82rem;
     padding: 5px 8px;
   }
 
