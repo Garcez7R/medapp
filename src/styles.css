@@ -54,6 +54,15 @@ body {
   padding: 4px 10px;
 }
 
+.edge-swipe-zone {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  z-index: 30;
+}
+
 .content {
   flex: 1;
   padding: 16px;
