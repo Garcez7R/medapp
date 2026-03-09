@@ -1,8 +1,8 @@
 :root {
   --app-height: 100dvh;
-  --bg: #d9e4ee;
-  --surface: #f5f8fb;
-  --surface-strong: #ffffff;
+  --bg: #d6dee8;
+  --surface: #edf2f7;
+  --surface-strong: #f3f6fa;
   --primary: #0f5f73;
   --primary-soft: #cae8f0;
   --primary-strong: #0a3f4d;
@@ -542,8 +542,8 @@ textarea {
 
 .high-contrast {
   --bg: #dbeafe;
-  --surface: #ffffff;
-  --surface-strong: #ffffff;
+  --surface: #f1f5f9;
+  --surface-strong: #f8fafc;
   --primary: #0f172a;
   --primary-strong: #020617;
   --primary-soft: #bfdbfe;

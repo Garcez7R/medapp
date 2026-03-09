@@ -23,6 +23,7 @@ export interface MedicalAgendaItem {
   recorrenciaDias?: number;
   recorrenciaTotal?: number;
   recorrenciaIndice?: number;
+  recorrenciaIndefinida?: boolean;
 }
 
 export interface AppSettings {

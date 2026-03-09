@@ -16,6 +16,7 @@ const defaultItem = (): MedicalAgendaItem => ({
 });
 
 const reminders = ['Sem lembrete', '30 min antes', '1 hora antes', '3 horas antes', '1 dia antes'];
+const INDEFINITE_OCCURRENCES_PREVIEW = 24;
 
 function addDaysToIsoDate(dateIso: string, days: number): string {
   const [year, month, day] = dateIso.split('-').map((part) => Number(part) || 0);
@@ -84,10 +85,13 @@ export function AgendaPage() {
               {item.recorrenciaAtiva && item.recorrenciaDias ? (
                 <>
                   <br />
-                  Recorrência: a cada {item.recorrenciaDias} dia(s)
-                  {item.recorrenciaTotal && item.recorrenciaIndice
-                    ? ` (${item.recorrenciaIndice}/${item.recorrenciaTotal})`
-                    : ''}
+                  {item.recorrenciaIndefinida
+                    ? `Recorrência: a cada ${item.recorrenciaDias} dia(s) (indefinida, próximas ${INDEFINITE_OCCURRENCES_PREVIEW} datas)`
+                    : `Recorrência: a cada ${item.recorrenciaDias} dia(s)${
+                        item.recorrenciaTotal && item.recorrenciaIndice
+                          ? ` (${item.recorrenciaIndice}/${item.recorrenciaTotal})`
+                          : ''
+                      }`}
                 </>
               ) : null}
             </p>
@@ -130,6 +134,7 @@ function AgendaItemModal({ initialItem, onClose, onSave }: AgendaItemModalProps)
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [repeatEveryDays, setRepeatEveryDays] = useState(14);
   const [repeatOccurrences, setRepeatOccurrences] = useState(6);
+  const [repeatMode, setRepeatMode] = useState<'quantidade' | 'indefinida'>('quantidade');
 
   function setField<K extends keyof MedicalAgendaItem>(field: K, value: MedicalAgendaItem[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -148,15 +153,19 @@ function AgendaItemModal({ initialItem, onClose, onSave }: AgendaItemModalProps)
 
     if (!initialItem && repeatEnabled) {
       const everyDays = Math.max(1, Math.floor(repeatEveryDays));
-      const occurrences = Math.max(1, Math.floor(repeatOccurrences));
+      const isIndefinite = repeatMode === 'indefinida';
+      const occurrences = isIndefinite
+        ? INDEFINITE_OCCURRENCES_PREVIEW
+        : Math.max(1, Math.floor(repeatOccurrences));
       const nextItems: MedicalAgendaItem[] = Array.from({ length: occurrences }, (_, index) => ({
         ...baseItem,
         id: createId(),
         data: addDaysToIsoDate(baseItem.data, index * everyDays),
         recorrenciaAtiva: true,
         recorrenciaDias: everyDays,
-        recorrenciaTotal: occurrences,
-        recorrenciaIndice: index + 1
+        recorrenciaTotal: isIndefinite ? undefined : occurrences,
+        recorrenciaIndice: index + 1,
+        recorrenciaIndefinida: isIndefinite
       }));
       onSave(nextItems);
       return;
@@ -224,6 +233,23 @@ function AgendaItemModal({ initialItem, onClose, onSave }: AgendaItemModalProps)
               {repeatEnabled && (
                 <>
                   <label>
+                    Duração da recorrência
+                    <select
+                      value={repeatMode}
+                      onChange={(e) =>
+                        setRepeatMode(
+                          (e.target.value as 'quantidade' | 'indefinida') === 'indefinida'
+                            ? 'indefinida'
+                            : 'quantidade'
+                        )
+                      }
+                    >
+                      <option value="quantidade">Número de ocorrências</option>
+                      <option value="indefinida">Indefinida (crônico)</option>
+                    </select>
+                  </label>
+
+                  <label>
                     Repetir a cada quantos dias
                     <input
                       type="number"
@@ -234,16 +260,22 @@ function AgendaItemModal({ initialItem, onClose, onSave }: AgendaItemModalProps)
                     />
                   </label>
 
-                  <label>
-                    Quantidade de ocorrências
-                    <input
-                      type="number"
-                      min={2}
-                      max={60}
-                      value={repeatOccurrences}
-                      onChange={(e) => setRepeatOccurrences(Number(e.target.value) || 2)}
-                    />
-                  </label>
+                  {repeatMode === 'quantidade' ? (
+                    <label>
+                      Quantidade de ocorrências
+                      <input
+                        type="number"
+                        min={2}
+                        max={60}
+                        value={repeatOccurrences}
+                        onChange={(e) => setRepeatOccurrences(Number(e.target.value) || 2)}
+                      />
+                    </label>
+                  ) : (
+                    <p className="card-sub" style={{ marginTop: 0 }}>
+                      Recorrência crônica ativa: serão criadas as próximas {INDEFINITE_OCCURRENCES_PREVIEW} datas.
+                    </p>
+                  )}
                 </>
               )}
             </>
