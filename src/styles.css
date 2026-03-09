@@ -1,14 +1,24 @@
 :root {
   --app-height: 100dvh;
-  --bg: #e2e8f0;
-  --surface: #f8fafc;
+  --bg: #d9e4ee;
+  --surface: #f5f8fb;
   --surface-strong: #ffffff;
-  --primary: #0f766e;
-  --primary-soft: #ccfbf1;
+  --primary: #0f5f73;
+  --primary-soft: #cae8f0;
+  --primary-strong: #0a3f4d;
+  --accent: #f59e0b;
   --text: #0f172a;
-  --muted: #475569;
-  --danger: #b91c1c;
-  --border: #cbd5e1;
+  --muted: #334155;
+  --border: #b7c4d4;
+  --success-bg: #dcfce7;
+  --success-fg: #166534;
+  --warning-bg: #fef3c7;
+  --warning-fg: #92400e;
+  --info-bg: #dbeafe;
+  --info-fg: #1d4ed8;
+  --error-bg: #fee2e2;
+  --error-fg: #991b1b;
+  --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
 * {
@@ -42,13 +52,14 @@ body {
 
 .app-header {
   padding: 12px 14px;
-  background: linear-gradient(135deg, #0d9488, #0f766e);
+  background: linear-gradient(120deg, var(--primary-strong), var(--primary));
   color: #f8fafc;
   font-weight: 700;
   letter-spacing: 0.4px;
   display: flex;
   align-items: center;
   gap: 10px;
+  box-shadow: 0 4px 16px rgba(2, 6, 23, 0.18);
 }
 
 .desktop-tabs {
@@ -58,20 +69,20 @@ body {
 }
 
 .desktop-tab-btn {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.14);
   color: #ecfeff;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.24);
   padding: 8px 12px;
 }
 
 .desktop-tab-btn.active {
-  background: #ecfeff;
-  color: #134e4a;
+  background: #f8fafc;
+  color: var(--primary-strong);
 }
 
 .menu-btn {
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
   border-radius: 8px;
   padding: 4px 10px;
@@ -79,8 +90,8 @@ body {
 
 .display-btn {
   margin-left: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
   border-radius: 8px;
   padding: 4px 10px;
@@ -117,6 +128,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px;
+  box-shadow: var(--shadow-soft);
 }
 
 .card-head {
@@ -158,16 +170,19 @@ select {
 .btn-primary {
   background: var(--primary);
   color: #f8fafc;
+  border: 1px solid rgba(10, 63, 77, 0.3);
 }
 
 .btn-soft {
-  background: #e2e8f0;
+  background: #e6edf5;
   color: #0f172a;
+  border: 1px solid #cad6e4;
 }
 
 .btn-danger {
-  background: #fee2e2;
-  color: var(--danger);
+  background: var(--error-bg);
+  color: var(--error-fg);
+  border: 1px solid #f8b4b4;
 }
 
 .fab {
@@ -323,11 +338,11 @@ select {
 }
 
 .dose-row.taken {
-  background: #dcfce7;
+  background: var(--success-bg);
 }
 
 .dose-row.pending {
-  background: #fee2e2;
+  background: var(--error-bg);
 }
 
 .empty {
@@ -354,7 +369,7 @@ textarea {
 }
 
 .active-chip {
-  outline: 2px solid #0f766e;
+  outline: 2px solid var(--primary);
 }
 
 .filter-chip {
@@ -362,23 +377,23 @@ textarea {
 }
 
 .filter-all {
-  background: #e2e8f0;
+  background: #e6edf5;
   color: #0f172a;
 }
 
 .filter-overdue {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--error-bg);
+  color: var(--error-fg);
 }
 
 .filter-upcoming {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--info-bg);
+  color: var(--info-fg);
 }
 
 .filter-taken {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-fg);
 }
 
 .filter-all.active-chip,
@@ -394,11 +409,19 @@ textarea {
   --surface: #ffffff;
   --surface-strong: #ffffff;
   --primary: #0f172a;
+  --primary-strong: #020617;
   --primary-soft: #bfdbfe;
   --text: #020617;
   --muted: #334155;
-  --danger: #7f1d1d;
   --border: #0f172a;
+  --success-bg: #dcfce7;
+  --success-fg: #14532d;
+  --warning-bg: #fef3c7;
+  --warning-fg: #78350f;
+  --info-bg: #dbeafe;
+  --info-fg: #1e3a8a;
+  --error-bg: #fee2e2;
+  --error-fg: #7f1d1d;
 }
 
 .high-contrast .app-header {
