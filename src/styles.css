@@ -29,7 +29,7 @@ body {
 }
 
 .app-shell {
-  max-width: 880px;
+  max-width: 1100px;
   margin: 0 auto;
   min-height: var(--app-height);
   height: var(--app-height);
@@ -49,6 +49,24 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.desktop-tabs {
+  margin-left: auto;
+  display: none;
+  gap: 8px;
+}
+
+.desktop-tab-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ecfeff;
+  border: 1px solid transparent;
+  padding: 8px 12px;
+}
+
+.desktop-tab-btn.active {
+  background: #ecfeff;
+  color: #134e4a;
 }
 
 .menu-btn {
@@ -391,5 +409,43 @@ textarea {
 
   .row button {
     flex: 1;
+  }
+}
+
+@media (min-width: 900px) {
+  #root {
+    min-height: 100vh;
+    height: auto;
+  }
+
+  .app-shell {
+    min-height: 100vh;
+    height: auto;
+    overflow: visible;
+  }
+
+  .desktop-tabs {
+    display: flex;
+  }
+
+  .edge-swipe-zone {
+    display: none;
+  }
+
+  .content {
+    overflow: visible;
+    padding: 20px 24px 28px;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  .fab {
+    bottom: 24px;
+  }
+
+  .med-list {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 }

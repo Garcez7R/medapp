@@ -38,6 +38,12 @@ export default function App() {
     setActivePage(next);
   }
 
+  const mainTabs: Array<{ key: MainTab; label: string }> = [
+    { key: 'medications', label: 'Medicamentos' },
+    { key: 'agenda', label: 'Agenda' },
+    { key: 'about', label: 'Sobre' }
+  ];
+
   function handleTouchStart(event: React.TouchEvent<HTMLElement>) {
     const touch = event.changedTouches[0];
     const fromOpenMenu = menuOpen;
@@ -108,6 +114,17 @@ export default function App() {
           ☰
         </button>
         <span>MedApp</span>
+        <nav className="desktop-tabs" aria-label="Navegação principal desktop">
+          {mainTabs.map((item) => (
+            <button
+              key={item.key}
+              className={`desktop-tab-btn ${tab === item.key ? 'active' : ''}`}
+              onClick={() => handleTabChange(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
       </header>
 
       <section className="content">{page}</section>
