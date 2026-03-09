@@ -239,6 +239,7 @@ label {
 }
 
 input[type='text'],
+input[type='password'],
 input[type='number'],
 input[type='time'],
 input[type='date'],
@@ -310,6 +311,26 @@ textarea {
   align-items: center;
   gap: 8px;
   color: var(--text);
+}
+
+.active-chip {
+  outline: 2px solid #0f766e;
+}
+
+.high-contrast {
+  --bg: #dbeafe;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --primary: #0f172a;
+  --primary-soft: #bfdbfe;
+  --text: #020617;
+  --muted: #334155;
+  --danger: #7f1d1d;
+  --border: #0f172a;
+}
+
+.high-contrast .app-header {
+  background: #020617;
 }
 
 @media (max-width: 560px) {

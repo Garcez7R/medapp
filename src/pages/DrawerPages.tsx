@@ -1,6 +1,19 @@
 import { useMemo, useState } from 'react';
-import type { DrawerPageKey, MainTab } from '../nav';
-import { createId, loadAgendaItems, loadMedications } from '../utils';
+import type { DrawerPageKey } from '../nav';
+import {
+  clearAllMedappData,
+  createId,
+  exportAllMedappData,
+  importAllMedappData,
+  loadAgendaItems,
+  loadAnalyticsEvents,
+  loadAuth,
+  loadMedications,
+  loadSettings,
+  saveAuth,
+  saveSettings,
+  trackEvent
+} from '../utils';
 
 type Item = { id: string; title: string; subtitle?: string; details?: string; date?: string };
 
@@ -41,8 +54,16 @@ function useCrudState(storageKey: string) {
     writeJson(storageKey, next);
   };
 
-  const add = (item: Omit<Item, 'id'>) => save([{ id: createId(), ...item }, ...items]);
-  const remove = (id: string) => save(items.filter((i) => i.id !== id));
+  const add = (item: Omit<Item, 'id'>) => {
+    const next = [{ id: createId(), ...item }, ...items];
+    save(next);
+    trackEvent('crud_add', `Item adicionado em ${storageKey}`);
+  };
+
+  const remove = (id: string) => {
+    save(items.filter((i) => i.id !== id));
+    trackEvent('crud_remove', `Item removido em ${storageKey}`);
+  };
 
   return { items, add, remove };
 }
@@ -130,10 +151,11 @@ function CrudPage(props: {
 function ReportsPage() {
   const meds = loadMedications();
   const agenda = loadAgendaItems();
+  const events = loadAnalyticsEvents();
   const dosesTotal = meds.reduce((sum, med) => sum + Math.max(1, Math.floor(24 / med.frequency)) * med.duration, 0);
   const takenTotal = meds.reduce((sum, med) => sum + med.dosesTakenStrings.length, 0);
 
-  const summary = `Medicações ativas: ${meds.length}\nCompromissos na agenda: ${agenda.length}\nDoses previstas: ${dosesTotal}\nDoses marcadas como tomadas: ${takenTotal}`;
+  const summary = `Medicações ativas: ${meds.length}\nCompromissos na agenda: ${agenda.length}\nDoses previstas: ${dosesTotal}\nDoses marcadas como tomadas: ${takenTotal}\nEventos de uso registrados: ${events.length}`;
 
   async function copySummary() {
     try {
@@ -152,6 +174,16 @@ function ReportsPage() {
         <button className="btn-primary" onClick={copySummary}>
           Copiar resumo
         </button>
+      </div>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <h3 className="card-title">Últimos eventos</h3>
+        {events.slice(0, 10).map((event) => (
+          <p key={event.id} className="card-sub">
+            [{new Date(event.createdAt).toLocaleString('pt-BR')}] {event.message}
+          </p>
+        ))}
+        {events.length === 0 && <p className="card-sub">Nenhum evento registrado.</p>}
       </div>
     </div>
   );
@@ -192,6 +224,7 @@ function NotificationsCenterPage() {
     save([{ id: createId(), title: title.trim(), date: date || undefined }, ...items]);
     setTitle('');
     setDate('');
+    trackEvent('custom_notification_added', 'Novo lembrete customizado salvo');
   }
 
   return (
@@ -244,14 +277,43 @@ function ProfilePage() {
       contatoEmergencia: ''
     })
   );
+  const [auth, setAuth] = useState(() => loadAuth());
+  const [password, setPassword] = useState('');
+  const [settings, setSettingsState] = useState(() => loadSettings());
 
   function save() {
     writeJson('medapp.profile', profile);
     window.alert('Perfil salvo com sucesso.');
+    trackEvent('profile_saved', 'Perfil atualizado pelo usuário');
   }
 
   function update<K extends keyof ProfileData>(key: K, value: ProfileData[K]) {
     setProfile((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function signIn() {
+    if (!profile.email.trim() || !password.trim()) {
+      window.alert('Informe e-mail e senha para login opcional.');
+      return;
+    }
+    const next = { email: profile.email.trim(), signedInAt: new Date().toISOString() };
+    setAuth(next);
+    saveAuth(next);
+    setPassword('');
+    trackEvent('auth_login', `Login local realizado: ${next.email}`);
+  }
+
+  function signOut() {
+    setAuth(null);
+    saveAuth(null);
+    trackEvent('auth_logout', 'Logout local realizado');
+  }
+
+  function setUiSettings(next: typeof settings) {
+    setSettingsState(next);
+    saveSettings(next);
+    trackEvent('ui_settings', 'Preferências de acessibilidade atualizadas');
+    window.location.reload();
   }
 
   return (
@@ -303,6 +365,52 @@ function ProfilePage() {
           Salvar perfil
         </button>
       </div>
+
+      <div className="card form-grid" style={{ marginTop: 12 }}>
+        <h3 className="card-title">Conta (opcional)</h3>
+        {auth ? (
+          <>
+            <p className="card-sub">Conectado como {auth.email}</p>
+            <button className="btn-danger" onClick={signOut}>
+              Sair
+            </button>
+          </>
+        ) : (
+          <>
+            <label>
+              Senha local
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </label>
+            <button className="btn-primary" onClick={signIn}>
+              Entrar
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="card form-grid" style={{ marginTop: 12 }}>
+        <h3 className="card-title">Acessibilidade</h3>
+        <label>
+          Tamanho da fonte
+          <select
+            value={settings.fontScale}
+            onChange={(e) => setUiSettings({ ...settings, fontScale: Number(e.target.value) || 1 })}
+          >
+            <option value={0.95}>Compacto</option>
+            <option value={1}>Padrão</option>
+            <option value={1.1}>Confortável</option>
+            <option value={1.2}>Acessível</option>
+          </select>
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={settings.highContrast}
+            onChange={(e) => setUiSettings({ ...settings, highContrast: e.target.checked })}
+          />
+          Alto contraste
+        </label>
+      </div>
     </div>
   );
 }
@@ -343,6 +451,7 @@ function ActivityLogPage() {
     if (!text.trim()) return;
     save([{ id: createId(), title: text.trim(), date: new Date().toISOString() }, ...logs]);
     setText('');
+    trackEvent('manual_log_added', 'Registro manual adicionado ao histórico');
   }
 
   return (
@@ -389,14 +498,7 @@ function PrivacyPage() {
   }
 
   function exportData() {
-    const data: Record<string, string> = {};
-    Object.keys(localStorage)
-      .filter((key) => key.startsWith('medapp.'))
-      .forEach((key) => {
-        const value = localStorage.getItem(key);
-        if (value != null) data[key] = value;
-      });
-
+    const data = exportAllMedappData();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -404,16 +506,16 @@ function PrivacyPage() {
     link.download = 'medapp-backup.json';
     link.click();
     URL.revokeObjectURL(url);
+    trackEvent('backup_export', 'Backup exportado');
   }
 
   function importData() {
     try {
       const parsed = JSON.parse(importText) as Record<string, string>;
-      Object.entries(parsed).forEach(([key, value]) => {
-        if (key.startsWith('medapp.')) localStorage.setItem(key, value);
-      });
+      importAllMedappData(parsed);
       window.alert('Dados importados com sucesso.');
       setImportText('');
+      window.location.reload();
     } catch {
       window.alert('JSON inválido para importação.');
     }
@@ -421,9 +523,7 @@ function PrivacyPage() {
 
   function clearData() {
     if (!window.confirm('Isso apagará todos os dados locais do MedApp. Continuar?')) return;
-    Object.keys(localStorage)
-      .filter((key) => key.startsWith('medapp.'))
-      .forEach((key) => localStorage.removeItem(key));
+    clearAllMedappData();
     window.location.reload();
   }
 
@@ -496,6 +596,8 @@ function AssistantPage() {
     } else {
       setAnswer('Posso ajudar com medicações, agenda, lembretes e organização da rotina.');
     }
+
+    trackEvent('assistant_question', `Pergunta ao assistente: ${question.trim()}`);
   }
 
   return (
