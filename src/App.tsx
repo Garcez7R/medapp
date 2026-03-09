@@ -65,6 +65,7 @@ export default function App() {
   const [settings, setSettings] = useState(() => loadSettings());
   const [displayPrefsOpen, setDisplayPrefsOpen] = useState(false);
   const [onboardingName, setOnboardingName] = useState('');
+  const [onboardingLegalAccepted, setOnboardingLegalAccepted] = useState(false);
   const [unlockPin, setUnlockPin] = useState('');
   const [unlockError, setUnlockError] = useState('');
   const [locked, setLocked] = useState(false);
@@ -286,11 +287,6 @@ export default function App() {
 
       <section className="content">{page}</section>
 
-      <section className="legal-persistent" role="note" aria-label="Aviso legal">
-        LGPD: dados pessoais ficam no dispositivo por padrão. Aviso: o MedApp não substitui orientação médica
-        e não se responsabiliza por doses não tomadas por falhas de telefone, bateria, silencioso ou indisponibilidade do aparelho.
-      </section>
-
       <BottomNav currentTab={tab} onChange={handleTabChange} />
 
       <SideMenu
@@ -378,10 +374,28 @@ export default function App() {
                   <option value={1.2}>Acessível</option>
                 </select>
               </label>
+
+              <div className="card" style={{ marginTop: 4 }}>
+                <p className="card-sub" style={{ margin: 0 }}>
+                  LGPD: os dados ficam no seu dispositivo por padrão.
+                </p>
+                <p className="card-sub" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Aviso: o MedApp não substitui orientação médica e não se responsabiliza por doses não tomadas por
+                  falhas de telefone, bateria, modo silencioso ou indisponibilidade do aparelho.
+                </p>
+                <label className="checkbox-row" style={{ marginTop: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={onboardingLegalAccepted}
+                    onChange={(e) => setOnboardingLegalAccepted(e.target.checked)}
+                  />
+                  Li e estou ciente dos termos.
+                </label>
+              </div>
             </div>
 
             <div className="row" style={{ marginTop: 14 }}>
-              <button className="btn-primary" onClick={finishOnboarding}>
+              <button className="btn-primary" onClick={finishOnboarding} disabled={!onboardingLegalAccepted}>
                 Finalizar configuração
               </button>
             </div>
