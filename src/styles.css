@@ -326,6 +326,38 @@ textarea {
   outline: 2px solid #0f766e;
 }
 
+.filter-chip {
+  border: 1px solid transparent;
+}
+
+.filter-all {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.filter-overdue {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.filter-upcoming {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.filter-taken {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.filter-all.active-chip,
+.filter-overdue.active-chip,
+.filter-upcoming.active-chip,
+.filter-taken.active-chip {
+  border-color: currentColor;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
 .high-contrast {
   --bg: #dbeafe;
   --surface: #ffffff;

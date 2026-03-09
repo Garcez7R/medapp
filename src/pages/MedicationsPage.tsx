@@ -161,23 +161,26 @@ export function MedicationsPage() {
         <div className="card-head">
           <h3 className="card-title">Hoje</h3>
           <div className="row">
-            <button className={`btn-soft ${timelineFilter === 'all' ? 'active-chip' : ''}`} onClick={() => setTimelineFilter('all')}>
+            <button
+              className={`btn-soft filter-chip filter-all ${timelineFilter === 'all' ? 'active-chip' : ''}`}
+              onClick={() => setTimelineFilter('all')}
+            >
               Todas
             </button>
             <button
-              className={`btn-soft ${timelineFilter === 'overdue' ? 'active-chip' : ''}`}
+              className={`btn-soft filter-chip filter-overdue ${timelineFilter === 'overdue' ? 'active-chip' : ''}`}
               onClick={() => setTimelineFilter('overdue')}
             >
               Atrasadas
             </button>
             <button
-              className={`btn-soft ${timelineFilter === 'upcoming' ? 'active-chip' : ''}`}
+              className={`btn-soft filter-chip filter-upcoming ${timelineFilter === 'upcoming' ? 'active-chip' : ''}`}
               onClick={() => setTimelineFilter('upcoming')}
             >
               Próximas
             </button>
             <button
-              className={`btn-soft ${timelineFilter === 'taken' ? 'active-chip' : ''}`}
+              className={`btn-soft filter-chip filter-taken ${timelineFilter === 'taken' ? 'active-chip' : ''}`}
               onClick={() => setTimelineFilter('taken')}
             >
               Tomadas
