@@ -1,4 +1,5 @@
 :root {
+  --app-height: 100dvh;
   --bg: #e2e8f0;
   --surface: #f8fafc;
   --surface-strong: #ffffff;
@@ -23,14 +24,15 @@ body {
 }
 
 #root {
-  min-height: 100dvh;
+  min-height: var(--app-height);
+  height: var(--app-height);
 }
 
 .app-shell {
   max-width: 880px;
   margin: 0 auto;
-  min-height: 100dvh;
-  height: 100dvh;
+  min-height: var(--app-height);
+  height: var(--app-height);
   display: flex;
   flex-direction: column;
   background: rgba(248, 250, 252, 0.9);

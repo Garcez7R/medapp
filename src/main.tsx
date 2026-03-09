@@ -27,6 +27,17 @@ window.addEventListener('appinstalled', () => {
   window.dispatchEvent(new CustomEvent('medapp-installed'));
 });
 
+function updateAppHeightVar() {
+  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+  document.documentElement.style.setProperty('--app-height', `${Math.round(viewportHeight)}px`);
+}
+
+updateAppHeightVar();
+window.addEventListener('resize', updateAppHeightVar);
+window.addEventListener('orientationchange', updateAppHeightVar);
+window.addEventListener('pageshow', updateAppHeightVar);
+window.visualViewport?.addEventListener('resize', updateAppHeightVar);
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {
