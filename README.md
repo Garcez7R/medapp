@@ -19,7 +19,6 @@ Este repositório mantém a versão web oficial (PWA) no branch `main`.
 - Relatórios
 - Central de Notificações
 - Perfil e Preferências
-- Termos e Privacidade
 - Histórico de Atividades
 - Privacidade e Segurança
 - Instalar app

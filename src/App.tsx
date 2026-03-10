@@ -634,7 +634,7 @@ export default function App() {
               O MedApp é um auxiliar de rotina e não substitui cuidado humano nem orientação médica.
             </p>
             <div className="row">
-              <button className="btn-soft" onClick={() => setActivePage('termos')}>
+              <button className="btn-soft" onClick={() => setActivePage('privacidade')}>
                 Ver termos completos
               </button>
             </div>
