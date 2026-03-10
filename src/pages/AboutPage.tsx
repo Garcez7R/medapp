@@ -178,21 +178,36 @@ export function AboutPage() {
       <h2 className="page-title">Sobre o MedApp</h2>
 
       <div className="card">
-        <p>
-          O MedApp é um aplicativo pessoal de saúde em desenvolvimento, pensado para ajudar no
-          controle e organização do seu tratamento médico diário.
+        <h3 className="card-title">Visao geral</h3>
+        <p className="card-sub">
+          O MedApp ajuda a organizar medicações e rotina de cuidados de forma simples, com lembretes e registros.
         </p>
-        <p>
-          Com ele, você poderá registrar medicamentos, compromissos médicos, vacinas, receitas e
-          muito mais, de forma simples, visual e eficiente.
-        </p>
-        <p>
-          Nosso objetivo é permitir que qualquer pessoa consiga gerenciar sua rotina médica com
-          autonomia, clareza e segurança, com lembretes e registros.
-        </p>
-        <p>
-          Esta é uma versão inicial. Muitas funcionalidades ainda estão em construção, mas já é
-          possível acompanhar os medicamentos e compromissos médicos.
+        <div className="med-card-meta">
+          <span>Medicamentos e doses</span>
+          <span>Agenda e compromissos</span>
+          <span>Vacinas e receitas</span>
+          <span>Diario de saúde</span>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <h3 className="card-title">Acoes rapidas</h3>
+        <p className="card-sub">Teste as notificacoes e confirme a instalacao do app.</p>
+        <div className="row" style={{ marginTop: 6 }}>
+          <button className="btn-primary" onClick={testarNotificacaoInstantanea}>
+            Instantanea
+          </button>
+          <button className="btn-soft" onClick={testarNotificacaoAgendada}>
+            Agendada (10s)
+          </button>
+          <button className="btn-primary" onClick={instalarApp} disabled={!installAvailable && !isStandaloneMode()}>
+            {installLabel}
+          </button>
+        </div>
+        {status && <p className="card-sub">{status}</p>}
+        <p className="card-sub">
+          Em alguns celulares, o navegador so permite notificacao apos instalacao. Para alertas mais fortes, ative som
+          e destaque do MedApp nas configuracoes de notificacoes do Android.
         </p>
       </div>
 
@@ -219,26 +234,9 @@ export function AboutPage() {
         </ul>
       </div>
 
-      <div className="row" style={{ marginTop: 12 }}>
-          <button className="btn-primary" onClick={testarNotificacaoInstantanea}>
-            Instantânea
-          </button>
-          <button className="btn-soft" onClick={testarNotificacaoAgendada}>
-            Agendada (10s)
-          </button>
-        </div>
-      <div className="row" style={{ marginTop: 8 }}>
-        <button className="btn-primary" onClick={instalarApp} disabled={!installAvailable && !isStandaloneMode()}>
-          {installLabel}
-        </button>
-      </div>
-      {status && <p className="card-sub">{status}</p>}
-      <p className="card-sub">
-        Em alguns celulares, o navegador só permite notificação após instalação do app. Para alertas mais fortes,
-        ative som e destaque do MedApp nas configurações de notificações do Android.
+      <p className="card-sub" style={{ marginTop: 12 }}>
+        Versao atual: 0.1.0-alpha
       </p>
-
-      <p className="card-sub">Versão atual: 0.1.0-alpha</p>
     </div>
   );
 }

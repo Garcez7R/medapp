@@ -253,21 +253,42 @@ function ReportsPage() {
   return (
     <div>
       <h2 className="page-title">Relatórios</h2>
-      <div className="card">
-        <p>{summary}</p>
-        <button className="btn-primary" onClick={copySummary}>
-          Copiar resumo
-        </button>
+      <div className="card meds-summary">
+        <div>
+          <p className="card-sub" style={{ marginTop: 0 }}>
+            Resumo geral
+          </p>
+          <div className="med-card-meta">
+            <span>Medicações ativas: {meds.length}</span>
+            <span>Compromissos: {agenda.length}</span>
+            <span>Doses previstas: {dosesTotal}</span>
+            <span>Doses tomadas: {takenTotal}</span>
+            <span>Eventos registrados: {events.length}</span>
+          </div>
+        </div>
+        <div className="row">
+          <button className="btn-primary" onClick={copySummary}>
+            Copiar resumo
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ marginTop: 12 }}>
         <h3 className="card-title">Últimos eventos</h3>
-        {events.slice(0, 10).map((event) => (
-          <p key={event.id} className="card-sub">
-            [{new Date(event.createdAt).toLocaleString('pt-BR')}] {event.message}
-          </p>
-        ))}
-        {events.length === 0 && <p className="card-sub">Nenhum evento registrado.</p>}
+        {events.length === 0 ? (
+          <p className="card-sub">Nenhum evento registrado.</p>
+        ) : (
+          <div className="med-list" style={{ marginTop: 8 }}>
+            {events.slice(0, 10).map((event) => (
+              <article className="card" key={event.id}>
+                <div className="med-card-meta">
+                  <span>{new Date(event.createdAt).toLocaleString('pt-BR')}</span>
+                </div>
+                <p style={{ margin: '6px 0 0' }}>{event.message}</p>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -316,6 +337,9 @@ function NotificationsCenterPage() {
       <h2 className="page-title">Central de Notificações</h2>
 
       <div className="card form-grid">
+        <p className="card-sub" style={{ marginTop: 0 }}>
+          Criar lembrete manual
+        </p>
         <label>
           Novo lembrete
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -330,25 +354,50 @@ function NotificationsCenterPage() {
       </div>
 
       <div className="med-list" style={{ marginTop: 12 }}>
-        {generated.map((item) => (
-          <article className="card" key={item.id}>
-            <h3 className="card-title">{item.title}</h3>
-            {item.subtitle && <p className="card-sub">{item.subtitle}</p>}
-          </article>
-        ))}
-        {items.map((item) => (
-          <article className="card" key={item.id}>
-            <h3 className="card-title">{item.title}</h3>
-            <div className="med-card-meta">
-              {item.date && <span>Data: {item.date}</span>}
+        <article className="card">
+          <h3 className="card-title">Lembretes gerados automaticamente</h3>
+          {generated.length === 0 ? (
+            <p className="card-sub">Nenhum lembrete automático disponível.</p>
+          ) : (
+            <div className="med-list" style={{ marginTop: 8 }}>
+              {generated.map((item) => (
+                <article className="card" key={item.id}>
+                  <h3 className="card-title">{item.title}</h3>
+                  {item.subtitle && (
+                    <div className="med-card-meta">
+                      <span>{item.subtitle}</span>
+                    </div>
+                  )}
+                </article>
+              ))}
             </div>
-            <div className="med-actions-row">
-              <button className="btn-danger" onClick={() => save(items.filter((i) => i.id !== item.id))}>
-                Remover
-              </button>
+          )}
+        </article>
+      </div>
+
+      <div className="med-list" style={{ marginTop: 12 }}>
+        <article className="card">
+          <h3 className="card-title">Lembretes personalizados</h3>
+          {items.length === 0 ? (
+            <p className="card-sub">Nenhum lembrete personalizado registrado.</p>
+          ) : (
+            <div className="med-list" style={{ marginTop: 8 }}>
+              {items.map((item) => (
+                <article className="card" key={item.id}>
+                  <h3 className="card-title">{item.title}</h3>
+                  <div className="med-card-meta">
+                    {item.date && <span>Data: {item.date}</span>}
+                  </div>
+                  <div className="med-actions-row">
+                    <button className="btn-danger" onClick={() => save(items.filter((i) => i.id !== item.id))}>
+                      Remover
+                    </button>
+                  </div>
+                </article>
+              ))}
             </div>
-          </article>
-        ))}
+          )}
+        </article>
       </div>
     </div>
   );
