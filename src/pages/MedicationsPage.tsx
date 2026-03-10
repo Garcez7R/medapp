@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { AlarmClock, Check, Plus, SkipForward, Undo2 } from 'lucide-react';
 import { MedicationFormModal } from '../components/MedicationFormModal';
 import type { Medication } from '../types';
 import {
@@ -62,6 +62,21 @@ export function MedicationsPage() {
       return true;
     });
   }, [todayEntries, now, timelineFilter]);
+
+  const summary = useMemo(() => {
+    const total = todayEntries.length;
+    const taken = todayEntries.filter((entry) => entry.taken).length;
+    const skipped = todayEntries.filter((entry) => entry.skipped).length;
+    const overdue = todayEntries.filter((entry) => {
+      const when = new Date(entry.dateTimeIso);
+      return when < now && !entry.taken && !entry.skipped;
+    }).length;
+    const upcoming = todayEntries.filter((entry) => {
+      const when = new Date(entry.dateTimeIso);
+      return when >= now && !entry.taken && !entry.skipped;
+    }).length;
+    return { total, taken, skipped, overdue, upcoming };
+  }, [todayEntries, now]);
 
   useEffect(() => {
     const checkAndNotify = async () => {
@@ -156,7 +171,27 @@ export function MedicationsPage() {
 
   return (
     <div>
-      <h2 className="page-title">Medicamentos/Dosagens</h2>
+      <h2 className="page-title">Medicamentos</h2>
+
+      <div className="card meds-summary">
+        <div>
+          <p className="card-sub" style={{ marginTop: 0 }}>
+            Resumo de hoje
+          </p>
+          <p style={{ margin: 0 }}>
+            Doses: <strong>{summary.total}</strong> • Tomadas: <strong>{summary.taken}</strong> • Atrasadas:{' '}
+            <strong>{summary.overdue}</strong>
+          </p>
+          <p style={{ margin: '4px 0 0' }}>
+            Próximas: <strong>{summary.upcoming}</strong> • Ignoradas: <strong>{summary.skipped}</strong>
+          </p>
+        </div>
+        <div className="row">
+          <button className="btn-primary" onClick={() => setIsCreating(true)}>
+            Adicionar medicamento
+          </button>
+        </div>
+      </div>
 
       <div className="card" style={{ marginBottom: 12 }}>
         <div className="card-head">
@@ -197,15 +232,20 @@ export function MedicationsPage() {
             const overdue = when < now && !entry.taken && !entry.skipped;
             return (
               <div className={`dose-row ${entry.taken ? 'taken' : overdue ? 'pending' : ''}`} key={entry.key}>
-                <div>
+                <div className="dose-main">
                   <strong>{capitalize(entry.medicationName)}</strong>
                   <div className="card-sub" style={{ margin: 0 }}>
                     {entry.dosage} • {entry.time}
                     {entry.skipped ? ' • Ignorada' : ''}
-                    {entry.snoozedUntil ? ` • Adiada até ${new Date(entry.snoozedUntil).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                    {entry.snoozedUntil
+                      ? ` • Adiada até ${new Date(entry.snoozedUntil).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}`
+                      : ''}
                   </div>
                 </div>
-                <div className="row">
+                <div className="dose-actions">
                   <button
                     className={entry.taken ? 'btn-dose-undo' : 'btn-dose-take'}
                     onClick={() => {
@@ -214,21 +254,25 @@ export function MedicationsPage() {
                       toggleDose(med, new Date(entry.dateTimeIso));
                     }}
                   >
+                    {entry.taken ? <Undo2 size={16} /> : <Check size={16} />}
                     {entry.taken ? 'Desfazer' : 'Tomar'}
                   </button>
                   {!entry.taken && !entry.skipped && (
                     <>
                       <button className="btn-dose-snooze" onClick={() => actionSnooze(entry.key)}>
-                        Adiar 10m
+                        <AlarmClock size={16} />
+                        Adiar
                       </button>
                       <button className="btn-dose-skip" onClick={() => actionSkip(entry.key)}>
+                        <SkipForward size={16} />
                         Pular
                       </button>
                     </>
                   )}
                   {entry.skipped && (
                     <button className="btn-dose-undo" onClick={() => actionUndoSkip(entry.key)}>
-                      Desfazer pulo
+                      <Undo2 size={16} />
+                      Desfazer
                     </button>
                   )}
                 </div>
@@ -255,17 +299,18 @@ export function MedicationsPage() {
               </div>
             </div>
 
-            <p className="card-sub">
-              Dosagem: {med.dosage}
-              <br />
-              Frequência: a cada {med.frequency}h | Duração: {med.duration} dias
-              <br />
-              Início: {med.time}
-            </p>
+            <div className="med-card-meta">
+              <span>{med.dosage}</span>
+              <span>A cada {med.frequency}h</span>
+              <span>Início {med.time}</span>
+              <span>Duração {med.duration} dias</span>
+            </div>
 
-            <button className="btn-soft" onClick={() => setDosesModalForId(med.id)}>
-              Ver doses
-            </button>
+            <div className="med-actions-row">
+              <button className="btn-soft" onClick={() => setDosesModalForId(med.id)}>
+                Ver doses
+              </button>
+            </div>
           </article>
         ))}
       </div>

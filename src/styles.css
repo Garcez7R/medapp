@@ -163,6 +163,34 @@ body {
   gap: 10px;
 }
 
+.meds-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.med-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.med-card-meta span {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.med-actions-row {
+  margin-top: 10px;
+}
+
 .card {
   background: var(--surface-strong);
   border: 1px solid var(--border);
@@ -478,6 +506,26 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+}
+
+.dose-main {
+  min-width: 0;
+}
+
+.dose-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.dose-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
 }
 
 .dose-row.taken {
