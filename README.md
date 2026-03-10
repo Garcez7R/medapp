@@ -125,4 +125,6 @@ No painel do projeto `medapp`:
 
 - O app é orientado a dados locais e funciona bem offline para recursos locais.
 - Notificações dependem de permissão e suporte do navegador/sistema.
-- O app não substitui orientação médica profissional.
+- O MedApp é um auxiliar de rotina e não substitui orientação médica ou cuidado humano.
+- Tratamento de dados pessoais com base em princípios da LGPD (Lei 13.709/2018) e diretrizes do Marco Civil da Internet (Lei 12.965/2014).
+- O app não se responsabiliza por doses não tomadas em caso de falhas do app, bateria, telefone, conectividade, modo silencioso ou indisponibilidade do dispositivo.

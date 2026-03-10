@@ -111,7 +111,7 @@ export function AboutPage() {
     }
 
     const consentInstall = window.confirm(
-      'Antes de instalar: o MedApp segue boas práticas de LGPD para dados locais no dispositivo, mas não substitui orientação médica. O app não se responsabiliza por doses não tomadas por falhas de telefone, bateria, modo silencioso, falta de internet ou indisponibilidade do aparelho. Deseja continuar?'
+      'Antes de instalar: o MedApp é um app auxiliar de rotina, não substitui cuidado humano nem orientação médica. O tratamento de dados segue princípios da LGPD (Lei 13.709/2018) e diretrizes do Marco Civil da Internet (Lei 12.965/2014). O app não se responsabiliza por doses não tomadas por falhas de telefone, bateria, conectividade, modo silencioso, bloqueios do sistema ou indisponibilidade do aparelho. Deseja continuar?'
     );
     if (!consentInstall) {
       setStatus('Instalação cancelada. Revise os termos legais na seção LGPD e conformidade.');
@@ -164,12 +164,14 @@ export function AboutPage() {
         <h3 className="card-title">LGPD e conformidade</h3>
         <ul className="card-sub">
           <li>Os dados são armazenados localmente no seu dispositivo por padrão.</li>
+          <li>Tratamento de dados baseado em princípios da LGPD (Lei 13.709/2018).</li>
+          <li>Uso do serviço alinhado às diretrizes do Marco Civil da Internet (Lei 12.965/2014).</li>
           <li>Você pode exportar, importar ou apagar os dados em Privacidade e Segurança.</li>
           <li>As informações são usadas para operação do app (agenda, lembretes e histórico).</li>
           <li>Você pode solicitar revogação de consentimento desativando recursos opcionais.</li>
-          <li>O app não substitui orientação médica profissional.</li>
+          <li>O MedApp é um auxiliar de rotina e não substitui cuidado humano ou orientação médica profissional.</li>
           <li>
-            O MedApp não se responsabiliza por doses não tomadas por falhas de telefone, bateria,
+            O MedApp não se responsabiliza por doses não tomadas por falhas do app, telefone, bateria, conectividade,
             aparelho em silencioso, bloqueios do sistema operacional ou indisponibilidade de rede/dispositivo.
           </li>
         </ul>

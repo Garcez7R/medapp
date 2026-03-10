@@ -571,11 +571,13 @@ export default function App() {
 
               <div className="card" style={{ marginTop: 4 }}>
                 <p className="card-sub" style={{ margin: 0 }}>
-                  LGPD: os dados ficam no seu dispositivo por padrão.
+                  LGPD e Marco Civil: dados locais por padrão, com princípios da Lei 13.709/2018 e diretrizes da Lei
+                  12.965/2014.
                 </p>
                 <p className="card-sub" style={{ marginTop: 8, marginBottom: 0 }}>
-                  Aviso: o MedApp não substitui orientação médica e não se responsabiliza por doses não tomadas por
-                  falhas de telefone, bateria, modo silencioso ou indisponibilidade do aparelho.
+                  Aviso: o MedApp é um auxiliar de rotina, não substitui cuidado humano ou orientação médica, e não se
+                  responsabiliza por doses não tomadas por falhas do app, telefone, bateria, conectividade, modo
+                  silencioso ou indisponibilidade do aparelho.
                 </p>
                 <label className="checkbox-row" style={{ marginTop: 10 }}>
                   <input
