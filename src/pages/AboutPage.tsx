@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { LEGAL_TERMS_VERSION, loadLegalAcceptance } from '../legal';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -14,6 +15,7 @@ export function AboutPage() {
     () => Boolean(window.__medappInstallPrompt)
   );
   const [status, setStatus] = useState('');
+  const legalAcceptance = useMemo(() => loadLegalAcceptance(), []);
   const scheduledTimerRef = useRef<number | null>(null);
   const installLabel = useMemo(() => {
     if (isStandaloneMode()) return 'App já instalado';
@@ -162,6 +164,12 @@ export function AboutPage() {
 
       <div className="card" style={{ marginTop: 12 }}>
         <h3 className="card-title">LGPD e conformidade</h3>
+        <p className="card-sub">Versão atual dos termos: {LEGAL_TERMS_VERSION}</p>
+        {legalAcceptance && (
+          <p className="card-sub">
+            Aceite registrado: {new Date(legalAcceptance.acceptedAt).toLocaleString('pt-BR')}
+          </p>
+        )}
         <ul className="card-sub">
           <li>Os dados são armazenados localmente no seu dispositivo por padrão.</li>
           <li>Tratamento de dados baseado em princípios da LGPD (Lei 13.709/2018).</li>

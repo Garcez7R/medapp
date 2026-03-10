@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Menu } from 'lucide-react';
 import { BottomNav } from './components/BottomNav';
 import { SideMenu } from './components/SideMenu';
+import {
+  LEGAL_TERMS_VERSION,
+  hasAcceptedCurrentLegalVersion,
+  saveLegalAcceptance
+} from './legal';
 import { type ActivePage, type MainTab } from './nav';
 import { DrawerPageRouter } from './pages/DrawerPages';
 import { AboutPage } from './pages/AboutPage';
@@ -112,7 +117,13 @@ export default function App() {
   const [settings, setSettings] = useState(() => loadSettings());
   const [displayPrefsOpen, setDisplayPrefsOpen] = useState(false);
   const [onboardingName, setOnboardingName] = useState('');
-  const [onboardingLegalAccepted, setOnboardingLegalAccepted] = useState(false);
+  const [onboardingLegalAccepted, setOnboardingLegalAccepted] = useState(() =>
+    hasAcceptedCurrentLegalVersion()
+  );
+  const [legalReviewAccepted, setLegalReviewAccepted] = useState(false);
+  const [legalUpdatePending, setLegalUpdatePending] = useState(
+    () => loadSettings().onboardingDone && !hasAcceptedCurrentLegalVersion()
+  );
   const [onboardingAuthMethod, setOnboardingAuthMethod] = useState<'none' | 'google' | 'local'>('none');
   const [onboardingLocalEmail, setOnboardingLocalEmail] = useState('');
   const [onboardingLocalPassword, setOnboardingLocalPassword] = useState('');
@@ -143,6 +154,14 @@ export default function App() {
       window.removeEventListener('medapp-auth-changed', onAuthChanged);
     };
   }, []);
+
+  useEffect(() => {
+    if (!settings.onboardingDone) {
+      setLegalUpdatePending(false);
+      return;
+    }
+    setLegalUpdatePending(!hasAcceptedCurrentLegalVersion());
+  }, [settings.onboardingDone]);
 
   useEffect(() => {
     if ((window as any).google) {
@@ -266,6 +285,7 @@ export default function App() {
       );
     }
 
+    saveLegalAcceptance();
     setSettings((prev) => ({ ...prev, onboardingDone: true }));
     trackEvent('onboarding_completed', 'Onboarding inicial concluído');
   }
@@ -579,6 +599,9 @@ export default function App() {
                   responsabiliza por doses não tomadas por falhas do app, telefone, bateria, conectividade, modo
                   silencioso ou indisponibilidade do aparelho.
                 </p>
+                <p className="card-sub" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Versão dos termos: {LEGAL_TERMS_VERSION}
+                </p>
                 <label className="checkbox-row" style={{ marginTop: 10 }}>
                   <input
                     type="checkbox"
@@ -593,6 +616,49 @@ export default function App() {
             <div className="row" style={{ marginTop: 14 }}>
               <button className="btn-primary" onClick={finishOnboarding} disabled={!canFinishOnboarding}>
                 Finalizar configuração
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {legalUpdatePending && (
+        <div className="modal-backdrop" onClick={() => undefined}>
+          <section className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 className="page-title">Atualização de Termos</h2>
+            <p className="card-sub">
+              Atualizamos os termos legais do MedApp (versão {LEGAL_TERMS_VERSION}). Para continuar usando o app,
+              revise e confirme o aceite.
+            </p>
+            <p className="card-sub">
+              O MedApp é um auxiliar de rotina e não substitui cuidado humano nem orientação médica.
+            </p>
+            <div className="row">
+              <button className="btn-soft" onClick={() => setActivePage('termos')}>
+                Ver termos completos
+              </button>
+            </div>
+            <label className="checkbox-row" style={{ marginTop: 10 }}>
+              <input
+                type="checkbox"
+                checked={legalReviewAccepted}
+                onChange={(e) => setLegalReviewAccepted(e.target.checked)}
+              />
+              Li e aceito os termos e política de privacidade da versão {LEGAL_TERMS_VERSION}.
+            </label>
+            <div className="row" style={{ marginTop: 14 }}>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  if (!legalReviewAccepted) return;
+                  saveLegalAcceptance();
+                  setLegalUpdatePending(false);
+                  setLegalReviewAccepted(false);
+                  trackEvent('legal_acceptance', `Aceite legal atualizado para versão ${LEGAL_TERMS_VERSION}`);
+                }}
+                disabled={!legalReviewAccepted}
+              >
+                Aceitar e continuar
               </button>
             </div>
           </section>

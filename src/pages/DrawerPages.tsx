@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { LEGAL_TERMS_VERSION, loadLegalAcceptance } from '../legal';
 import type { DrawerPageKey } from '../nav';
 import {
   clearAllMedappData,
@@ -1342,6 +1343,45 @@ function PrivacyPage() {
   );
 }
 
+function TermsAndPrivacyPage() {
+  const accepted = loadLegalAcceptance();
+
+  return (
+    <div>
+      <h2 className="page-title">Termos e Privacidade</h2>
+      <div className="card">
+        <p className="card-sub" style={{ marginTop: 0 }}>
+          Versão dos termos: {LEGAL_TERMS_VERSION}
+        </p>
+        {accepted && (
+          <p className="card-sub">Último aceite registrado: {new Date(accepted.acceptedAt).toLocaleString('pt-BR')}</p>
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <h3 className="card-title">Base legal e conformidade</h3>
+        <ul className="card-sub">
+          <li>Tratamento de dados pessoais conforme princípios da LGPD (Lei 13.709/2018).</li>
+          <li>Uso da aplicação alinhado às diretrizes do Marco Civil da Internet (Lei 12.965/2014).</li>
+          <li>Dados são armazenados localmente por padrão, com recursos de exportação e remoção.</li>
+        </ul>
+      </div>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <h3 className="card-title">Limites de responsabilidade</h3>
+        <ul className="card-sub">
+          <li>O MedApp é um auxiliar de rotina e não substitui cuidado humano ou orientação médica.</li>
+          <li>O app não garante disponibilidade contínua em todos os dispositivos e navegadores.</li>
+          <li>
+            O MedApp não se responsabiliza por doses não tomadas devido a falhas do app, telefone, bateria, rede,
+            modo silencioso, bloqueios do sistema operacional ou indisponibilidade do dispositivo.
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 
 export function DrawerPageRouter({ pageKey }: { pageKey: DrawerPageKey }) {
   if (pageKey === 'vacinas') {
@@ -1395,6 +1435,7 @@ export function DrawerPageRouter({ pageKey }: { pageKey: DrawerPageKey }) {
   if (pageKey === 'central_notificacoes') return <NotificationsCenterPage />;
   if (pageKey === 'perfil') return <ProfilePage />;
   if (pageKey === 'historico') return <ActivityLogPage />;
+  if (pageKey === 'termos') return <TermsAndPrivacyPage />;
   if (pageKey === 'privacidade') return <PrivacyPage />;
 
   return <div className="empty">Página não encontrada.</div>;

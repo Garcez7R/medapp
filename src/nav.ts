@@ -5,6 +5,7 @@ import {
   CalendarDays,
   FileText,
   History,
+  ScrollText,
   ShieldCheck,
   Syringe,
   UserRound,
@@ -22,6 +23,7 @@ export type DrawerPageKey =
   | 'central_notificacoes'
   | 'perfil'
   | 'historico'
+  | 'termos'
   | 'privacidade';
 
 export type ActivePage = MainTab | DrawerPageKey;
@@ -35,5 +37,6 @@ export const drawerItems: Array<{ key: DrawerPageKey; label: string; icon: Lucid
   { key: 'historico', label: 'Histórico de Atividades', icon: History },
   { key: 'relatorios', label: 'Relatórios', icon: BarChart3 },
   { key: 'perfil', label: 'Perfil e Preferências', icon: UserRound },
+  { key: 'termos', label: 'Termos e Privacidade', icon: ScrollText },
   { key: 'privacidade', label: 'Privacidade e Segurança', icon: ShieldCheck }
 ];

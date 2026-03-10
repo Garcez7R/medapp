@@ -19,6 +19,7 @@ Este repositório mantém a versão web oficial (PWA) no branch `main`.
 - Relatórios
 - Central de Notificações
 - Perfil e Preferências
+- Termos e Privacidade
 - Histórico de Atividades
 - Privacidade e Segurança
 - Instalar app
@@ -38,6 +39,7 @@ Este repositório mantém a versão web oficial (PWA) no branch `main`.
 - Sincronização em nuvem com Cloudflare D1
 - PWA instalável com ícones e atualização de cache/versionamento
 - Controles de privacidade (PIN, biometria quando disponível, export/import de dados)
+- Aceite legal versionado (versão + data de aceite) no primeiro uso/atualizações
 
 ## Stack
 - React 18
