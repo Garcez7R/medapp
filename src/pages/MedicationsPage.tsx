@@ -315,10 +315,6 @@ export function MedicationsPage() {
         ))}
       </div>
 
-      <button className="fab btn-primary" onClick={() => setIsCreating(true)} aria-label="Adicionar">
-        <Plus size={24} aria-hidden="true" />
-      </button>
-
       {isCreating && (
         <MedicationFormModal onClose={() => setIsCreating(false)} onSave={upsertMedication} />
       )}
