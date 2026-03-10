@@ -84,7 +84,11 @@ self.addEventListener('message', (event) => {
         self.registration
           .showNotification(title, {
             body,
-            tag: `medapp-scheduled-${Date.now()}`
+            tag: `medapp-scheduled-${Date.now()}`,
+            requireInteraction: true,
+            vibrate: [200, 100, 200],
+            badge: '/medapp-launcher-192-v2.png',
+            icon: '/medapp-launcher-192-v2.png'
           })
           .finally(resolve);
       }, delayMs);

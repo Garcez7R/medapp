@@ -69,10 +69,17 @@ export function AboutPage() {
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.ready;
         if (registration) {
-          await registration.showNotification(title, {
-            body,
-            tag: `medapp-about-${Date.now()}`
-          });
+          await registration.showNotification(
+            title,
+            {
+              body,
+              tag: `medapp-about-${Date.now()}`,
+              requireInteraction: true,
+              vibrate: [200, 100, 200],
+              badge: '/medapp-launcher-192-v2.png',
+              icon: '/medapp-launcher-192-v2.png'
+            } as NotificationOptions
+          );
           return;
         }
       }
@@ -80,7 +87,15 @@ export function AboutPage() {
       // fallback below
     }
 
-    new api(title, { body, tag: `medapp-about-${Date.now()}` });
+    new api(
+      title,
+      {
+        body,
+        tag: `medapp-about-${Date.now()}`,
+        requireInteraction: true,
+        vibrate: [200, 100, 200]
+      } as NotificationOptions
+    );
   }
 
   async function testarNotificacaoInstantanea() {
@@ -205,13 +220,13 @@ export function AboutPage() {
       </div>
 
       <div className="row" style={{ marginTop: 12 }}>
-        <button className="btn-primary" onClick={testarNotificacaoInstantanea}>
-          Instantânea
-        </button>
-        <button className="btn-soft" onClick={testarNotificacaoAgendada}>
-          Agendada (10s)
-        </button>
-      </div>
+          <button className="btn-primary" onClick={testarNotificacaoInstantanea}>
+            Instantânea
+          </button>
+          <button className="btn-soft" onClick={testarNotificacaoAgendada}>
+            Agendada (10s)
+          </button>
+        </div>
       <div className="row" style={{ marginTop: 8 }}>
         <button className="btn-primary" onClick={instalarApp} disabled={!installAvailable && !isStandaloneMode()}>
           {installLabel}
@@ -219,7 +234,8 @@ export function AboutPage() {
       </div>
       {status && <p className="card-sub">{status}</p>}
       <p className="card-sub">
-        Em alguns celulares, o navegador só permite notificação após instalação do app.
+        Em alguns celulares, o navegador só permite notificação após instalação do app. Para alertas mais fortes,
+        ative som e destaque do MedApp nas configurações de notificações do Android.
       </p>
 
       <p className="card-sub">Versão atual: 0.1.0-alpha</p>
