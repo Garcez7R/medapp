@@ -185,6 +185,8 @@ body {
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 4px 10px;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .med-actions-row {

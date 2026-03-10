@@ -69,23 +69,18 @@ export function AgendaPage() {
         {items.map((item) => (
           <article className="card" key={item.id}>
             <h3 className="card-title">{item.compromisso}</h3>
-            <p className="card-sub">
-              Data: {item.data}
-              <br />
-              Hora: {item.hora || '-'}
-              <br />
-              Local: {item.local || '-'}
-              <br />
-              Profissional: {item.medico || '-'} ({item.especialidade || '-'})
-              <br />
-              Contato: {item.contato || '-'}
-              <br />
-              Obs: {item.observacoes || '-'}
-              <br />
-              Lembrete: {item.lembrete}
+            <div className="med-card-meta">
+              <span>Data: {item.data}</span>
+              <span>Hora: {item.hora || '-'}</span>
+              <span>Local: {item.local || '-'}</span>
+              <span>
+                Profissional: {item.medico || '-'} ({item.especialidade || '-'})
+              </span>
+              <span>Contato: {item.contato || '-'}</span>
+              <span>Obs: {item.observacoes || '-'}</span>
+              <span>Lembrete: {item.lembrete}</span>
               {item.recorrenciaAtiva && item.recorrenciaDias ? (
-                <>
-                  <br />
+                <span>
                   {item.recorrenciaIndefinida
                     ? `Recorrência: a cada ${item.recorrenciaDias} dia(s) (indefinida, próximas ${INDEFINITE_OCCURRENCES_PREVIEW} datas)`
                     : `Recorrência: a cada ${item.recorrenciaDias} dia(s)${
@@ -93,10 +88,10 @@ export function AgendaPage() {
                           ? ` (${item.recorrenciaIndice}/${item.recorrenciaTotal})`
                           : ''
                       }`}
-                </>
+                </span>
               ) : null}
-            </p>
-            <div className="row">
+            </div>
+            <div className="med-actions-row">
               <button className="btn-soft" onClick={() => setEditingId(item.id)}>
                 Editar
               </button>

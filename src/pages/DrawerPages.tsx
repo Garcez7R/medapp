@@ -215,12 +215,16 @@ function CrudPage(props: {
         {items.map((item) => (
           <article className="card" key={item.id}>
             <h3 className="card-title">{item.title}</h3>
-            {item.subtitle && <p className="card-sub">{item.subtitle}</p>}
-            {item.details && <p className="card-sub">{item.details}</p>}
-            {item.date && <p className="card-sub">Data: {item.date}</p>}
-            <button className="btn-danger" onClick={() => remove(item.id)}>
-              Remover
-            </button>
+            <div className="med-card-meta">
+              {item.subtitle && <span>{item.subtitle}</span>}
+              {item.details && <span>{item.details}</span>}
+              {item.date && <span>Data: {item.date}</span>}
+            </div>
+            <div className="med-actions-row">
+              <button className="btn-danger" onClick={() => remove(item.id)}>
+                Remover
+              </button>
+            </div>
           </article>
         ))}
       </div>
@@ -335,10 +339,14 @@ function NotificationsCenterPage() {
         {items.map((item) => (
           <article className="card" key={item.id}>
             <h3 className="card-title">{item.title}</h3>
-            {item.date && <p className="card-sub">Data: {item.date}</p>}
-            <button className="btn-danger" onClick={() => save(items.filter((i) => i.id !== item.id))}>
-              Remover
-            </button>
+            <div className="med-card-meta">
+              {item.date && <span>Data: {item.date}</span>}
+            </div>
+            <div className="med-actions-row">
+              <button className="btn-danger" onClick={() => save(items.filter((i) => i.id !== item.id))}>
+                Remover
+              </button>
+            </div>
           </article>
         ))}
       </div>
@@ -1054,10 +1062,14 @@ function ActivityLogPage() {
         {logs.map((log) => (
           <article className="card" key={log.id}>
             <h3 className="card-title">{log.title}</h3>
-            <p className="card-sub">{new Date(log.date ?? '').toLocaleString('pt-BR')}</p>
-            <button className="btn-danger" onClick={() => save(logs.filter((i) => i.id !== log.id))}>
-              Remover
-            </button>
+            <div className="med-card-meta">
+              <span>{new Date(log.date ?? '').toLocaleString('pt-BR')}</span>
+            </div>
+            <div className="med-actions-row">
+              <button className="btn-danger" onClick={() => save(logs.filter((i) => i.id !== log.id))}>
+                Remover
+              </button>
+            </div>
           </article>
         ))}
       </div>

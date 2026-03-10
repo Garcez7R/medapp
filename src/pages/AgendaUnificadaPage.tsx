@@ -149,10 +149,14 @@ export function AgendaUnificadaPage() {
               {eventos.map((evento) => (
                 <article className="card" key={evento.id}>
                   <p>{evento.text}</p>
-                  <p className="card-sub">Data: {evento.date}</p>
-                  <button className="btn-danger" onClick={() => removeEvento(evento.id)}>
-                    Remover
-                  </button>
+                  <div className="med-card-meta">
+                    <span>Data: {evento.date}</span>
+                  </div>
+                  <div className="med-actions-row">
+                    <button className="btn-danger" onClick={() => removeEvento(evento.id)}>
+                      Remover
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
