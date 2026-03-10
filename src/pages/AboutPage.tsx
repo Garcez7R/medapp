@@ -98,7 +98,26 @@ export function AboutPage() {
       scheduledTimerRef.current = null;
     }
 
-    setStatus('Notificação agendada para 10 segundos.');
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        const worker = registration.active ?? navigator.serviceWorker.controller;
+        if (worker) {
+          worker.postMessage({
+            type: 'medapp-schedule-notification',
+            delayMs: 10_000,
+            title: 'Notificação Agendada',
+            body: 'Essa notificação foi agendada para 10 segundos depois.'
+          });
+          setStatus('Notificação agendada para 10 segundos.');
+          return;
+        }
+      }
+    } catch {
+      // fallback below
+    }
+
+    setStatus('Notificação agendada para 10 segundos (modo compatível).');
     scheduledTimerRef.current = window.setTimeout(() => {
       void showNotification('Notificação Agendada', 'Essa notificação foi agendada para 10 segundos depois.');
       setStatus('Notificação agendada disparada.');

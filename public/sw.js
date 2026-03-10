@@ -1,4 +1,4 @@
-const CACHE = 'medapp-pwa-v6';
+const CACHE = 'medapp-pwa-v7';
 const ASSETS = [
   '/',
   '/manifest.webmanifest?v=4',
@@ -62,6 +62,32 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE).then((cache) => cache.put(event.request, copy));
         return response;
       });
+    })
+  );
+});
+
+self.addEventListener('message', (event) => {
+  const data = event.data || {};
+  if (data.type !== 'medapp-schedule-notification') return;
+
+  const delayMs = Number(data.delayMs);
+  const title = typeof data.title === 'string' ? data.title : 'Lembrete MedApp';
+  const body = typeof data.body === 'string' ? data.body : '';
+
+  if (!Number.isFinite(delayMs) || delayMs < 0 || delayMs > 24 * 60 * 60 * 1000) {
+    return;
+  }
+
+  event.waitUntil(
+    new Promise((resolve) => {
+      setTimeout(() => {
+        self.registration
+          .showNotification(title, {
+            body,
+            tag: `medapp-scheduled-${Date.now()}`
+          })
+          .finally(resolve);
+      }, delayMs);
     })
   );
 });
